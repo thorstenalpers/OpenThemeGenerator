@@ -5,6 +5,7 @@
 	import RotateIcon from '@lucide/svelte/icons/rotate-ccw';
 	import ChevronIcon from '@lucide/svelte/icons/chevron-down';
 	import XIcon from '@lucide/svelte/icons/x';
+	import ColorSpace from '$lib/components/color-space.svelte';
 	import ExportDialog from '$lib/components/export-dialog.svelte';
 	import ThemePreview from '$lib/components/theme-preview.svelte';
 	import TokenGrid from '$lib/components/token-grid.svelte';
@@ -37,6 +38,12 @@
 	import type { Theme } from '$lib/theme/theme';
 
 	const t = $derived(i18n.t);
+
+	const surfaces = $derived([
+		{ id: 'app' as const, label: t.studio.surfaceApp },
+		{ id: 'landing' as const, label: t.studio.surfaceLanding },
+		{ id: 'space' as const, label: t.studio.surfaceSpace }
+	]);
 
 	let exporting = $state<Theme | null>(null);
 	let collapsed = $state(false);
@@ -457,25 +464,35 @@
 				</div>
 
 				<div class="flex items-center gap-1.5">
-					{#each ['app', 'landing'] as const as candidate (candidate)}
+					{#each surfaces as candidate (candidate.id)}
 						<Button
 							size="sm"
-							variant={viewState.studioSurface === candidate ? 'default' : 'outline'}
-							onclick={() => (viewState.studioSurface = candidate)}
+							variant={viewState.studioSurface === candidate.id ? 'default' : 'outline'}
+							onclick={() => (viewState.studioSurface = candidate.id)}
 						>
-							{candidate === 'app' ? t.studio.surfaceApp : t.studio.surfaceLanding}
+							{candidate.label}
 						</Button>
 					{/each}
 				</div>
 			</div>
 
-			<ThemePreview
-				theme={workshop.theme}
-				mode={viewState.studioMode}
-				surface={viewState.studioSurface}
-				detail="full"
-				bind:collapsed
-			/>
+			{#if viewState.studioSurface === 'space'}
+				<ColorSpace
+					theme={workshop.theme}
+					mode={viewState.studioMode}
+					unavailable={t.studio.spaceUnavailable}
+					class="aspect-[8/5]"
+				/>
+				<p class="-mt-2 text-xs text-muted-foreground">{t.studio.spaceHint}</p>
+			{:else}
+				<ThemePreview
+					theme={workshop.theme}
+					mode={viewState.studioMode}
+					surface={viewState.studioSurface === 'landing' ? 'landing' : 'app'}
+					detail="full"
+					bind:collapsed
+				/>
+			{/if}
 
 			<div class="flex flex-col gap-1">
 				<span class="text-xs text-muted-foreground">{t.studio.tokens}</span>

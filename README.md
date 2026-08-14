@@ -40,6 +40,13 @@ drop in rather than a snippet you reconcile.
   corner radius, border width, elevation, sidebar geometry and content width. All of it is emitted
   as custom properties, and in the Tailwind v4 export it is bridged into the framework's own
   scales, so `p-4`, `text-base` and `shadow-sm` follow the theme.
+- **The theme in the space it is written in** — a third view puts every token where it actually
+  lives in OKLCH: height is lightness, distance from the axis is chroma, angle around it is hue.
+  Through it runs a cut of the sRGB gamut at the brand hue and its opposite — the shape every
+  article about OKLCH draws by hand and none of them let you put your own colours inside. Move a
+  slider and the spheres travel to their new places, which is the one view that answers _what did
+  that actually do_. Turn it by dragging, zoom by scrolling, hover a sphere to name it. Three.js is
+  loaded only when the view is opened, so the other pages never pay for it.
 - **Contrast checked while you edit** — each surface/label pair shows its WCAG ratio the moment it
   falls below the 4.5:1 body text needs. Every theme this app generates — the curated ones and all
   sixty-eight templates — is held to that in a test; the imported ones are carried as published and

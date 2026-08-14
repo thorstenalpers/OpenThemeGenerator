@@ -15,8 +15,9 @@ class ViewState {
 	/** Which mode's tokens the studio grid shows. */
 	studioMode = $state<'light' | 'dark'>('light');
 
-	/** Whether the studio previews the theme as an app or as a landing page. */
-	studioSurface = $state<'app' | 'landing'>('app');
+	/** What the studio shows beside the editor: the theme as an app, as a landing page, or as
+	 *  points in the colour space it is written in. */
+	studioSurface = $state<'app' | 'landing' | 'space'>('app');
 
 	/** The export dialog's choices. Which format a project needs does not change per theme. */
 	export = $state<{

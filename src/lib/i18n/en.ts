@@ -74,6 +74,10 @@ export const en = {
 		exportTheme: 'Export…',
 		surfaceApp: 'App',
 		surfaceLanding: 'Landing page',
+		surfaceSpace: 'Colour space',
+		spaceHint:
+			'Every token in OKLCH: height is lightness, distance from the axis is chroma, angle around it is hue. The slice is what sRGB can still show at the brand hue and its opposite. Drag to turn, scroll to zoom, hover a sphere to name it.',
+		spaceUnavailable: 'This webview has no WebGL, so the colour space cannot be drawn.',
 		closeTab: 'Close',
 		basedOn: (name: string) => `based on ${name}`,
 		changes: 'Manual changes',

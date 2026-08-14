@@ -78,6 +78,10 @@ export const de: Translations = {
 		exportTheme: 'Exportieren…',
 		surfaceApp: 'App',
 		surfaceLanding: 'Landingpage',
+		surfaceSpace: 'Farbraum',
+		spaceHint:
+			'Jedes Token in OKLCH: Höhe ist Helligkeit, Abstand zur Achse ist Chroma, Winkel darum ist der Farbton. Der Schnitt zeigt, was sRGB im Markenton und seinem Gegenüber noch darstellen kann. Ziehen dreht, Scrollen zoomt, Zeigen benennt eine Kugel.',
+		spaceUnavailable: 'Dieses Webview hat kein WebGL, der Farbraum lässt sich nicht zeichnen.',
 		closeTab: 'Schließen',
 		basedOn: (name: string) => `basiert auf ${name}`,
 		changes: 'Manuelle Änderungen',
