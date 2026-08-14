@@ -1,0 +1,14 @@
+# Package managers
+package-lock.json
+
+# Build output
+build/
+dist/
+src-tauri/target/
+src-tauri/gen/
+
+# Regenerated verbatim by `shadcn-svelte add`
+/src/lib/components/ui/
+
+# A framework-free sample: its formatting is part of what it demonstrates
+/reference/
