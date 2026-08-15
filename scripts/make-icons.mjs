@@ -18,10 +18,24 @@ const ACCENT_FAR = [168, 85, 247];
 const BEAK_COLOUR = [245, 158, 11];
 const INK = [18, 18, 24];
 
-/** Supersampling factor. Three passes per axis is enough to hide the stair-steps at 16 px. */
-const SAMPLES = 3;
+/** Supersampling factor. Five passes per axis measures an edge finely enough to then harden it. */
+const SAMPLES = 5;
 
-function coverage(size, test) {
+/**
+ * How hard the edges are driven towards fully on or fully off.
+ *
+ * Plain coverage is a faithful average and, at icon sizes, a blurry one: a one-pixel line lands as
+ * three grey pixels and the mark reads as a smudge. Steepening the ramp around a half keeps the
+ * antialiasing that stops the stair-steps while pushing everything else to a decision, which is
+ * what makes a small icon look drawn rather than resized.
+ */
+function sharpen(alpha, strength) {
+	if (alpha <= 0) return 0;
+	if (alpha >= 1) return 1;
+	return Math.min(1, Math.max(0, (alpha - 0.5) * strength + 0.5));
+}
+
+function coverage(size, test, strength = 1) {
 	return (x, y) => {
 		let hits = 0;
 		for (let sy = 0; sy < SAMPLES; sy += 1) {
@@ -31,7 +45,7 @@ function coverage(size, test) {
 				if (test(px, py)) hits += 1;
 			}
 		}
-		return hits / (SAMPLES * SAMPLES);
+		return sharpen(hits / (SAMPLES * SAMPLES), strength);
 	};
 }
 
@@ -70,47 +84,62 @@ const triangle = (ax, ay, bx, by, cx, cy) => {
 const left = (test) => (x, y) => x < 0.5 && test(x, y);
 const right = (test) => (x, y) => x >= 0.5 && test(x, y);
 
-const BODY = (x, y) =>
-	ellipse(0.5, 0.605, 0.245, 0.275)(x, y) || ellipse(0.5, 0.335, 0.178, 0.178)(x, y);
-const BELLY = ellipse(0.5, 0.645, 0.163, 0.212);
-const FACE = ellipse(0.5, 0.35, 0.128, 0.118);
-const BEAK = triangle(0.458, 0.372, 0.542, 0.372, 0.5, 0.425);
-const FOOT_R = ellipse(0.602, 0.878, 0.078, 0.034, 8);
-const FOOT_L = ellipse(0.398, 0.878, 0.078, 0.034, -8);
-const FLIPPER_L = ellipse(0.253, 0.63, 0.052, 0.15, -18);
-const FLIPPER_R = ellipse(0.747, 0.63, 0.052, 0.15, 18);
+/**
+ * The bird fills the tile.
+ *
+ * Everything below is written against the drawing this started from and then blown up about the
+ * centre. A generous margin is what a poster wants; an icon wants pixels, and at 16 px every one
+ * given away to padding is one the shape does not get.
+ */
+const ZOOM = 1.165;
+/** The bird is not centred in its own drawing — head at 0.157, feet at 0.912 — so it is recentred
+ *  as it is enlarged, or the zoom pushes the feet out of the tile before the head reaches the top. */
+const CENTRE = 0.5345;
+const big = (test) => (x, y) => test((x - 0.5) / ZOOM + 0.5, (y - 0.5) / ZOOM + CENTRE);
+
+const BODY = big(
+	(x, y) => ellipse(0.5, 0.605, 0.245, 0.275)(x, y) || ellipse(0.5, 0.335, 0.178, 0.178)(x, y)
+);
+const BELLY = big(ellipse(0.5, 0.645, 0.163, 0.212));
+const FACE = big(ellipse(0.5, 0.35, 0.128, 0.118));
+const BEAK = big(triangle(0.458, 0.372, 0.542, 0.372, 0.5, 0.425));
+const FOOT_R = big(ellipse(0.602, 0.878, 0.078, 0.034, 8));
+const FOOT_L = big(ellipse(0.398, 0.878, 0.078, 0.034, -8));
+const FLIPPER_L = big(ellipse(0.253, 0.63, 0.052, 0.15, -18));
+const FLIPPER_R = big(ellipse(0.747, 0.63, 0.052, 0.15, 18));
+const eye = (cx, r) => big(ellipse(cx, 0.315, r, r));
 
 /**
  * The mark: one penguin, unpainted on the left and themed on the right.
  *
- * It is the whole app in two shapes — the same thing before and after a theme reaches it — and it
- * survives the icon's real problem, which is 16 px. Everything here is drawn per size rather than
- * scaled down from one master, so the strokes and the eye can be widened where a hairline would
- * fall below a pixel and disappear.
+ * The same bird before and after a theme reaches it, which is the whole app in two shapes. It is
+ * the same mark at every size — a taskbar showing a different drawing from the one that was chosen
+ * is not an icon, it is two icons — so the parts that cannot survive a pixel grid are widened
+ * rather than swapped out, and every size is drawn at its own resolution instead of resampled.
  */
 function render(size) {
+	// Steeper where there is least room. At 256 the shapes are large enough that a faithful average
+	// already looks drawn; at 16 it has to be pushed, or a one-pixel line lands as three grey ones.
+	const bite = size <= 20 ? 3.4 : size <= 48 ? 2.6 : 1.6;
+
 	const radius = 0.22;
-	const inSquare = coverage(size, (x, y) => {
-		const dx = Math.max(radius - x, x - (1 - radius), 0);
-		const dy = Math.max(radius - y, y - (1 - radius), 0);
-		return dx * dx + dy * dy <= radius * radius;
-	});
+	const inSquare = coverage(
+		size,
+		(x, y) => {
+			const dx = Math.max(radius - x, x - (1 - radius), 0);
+			const dy = Math.max(radius - y, y - (1 - radius), 0);
+			return dx * dx + dy * dy <= radius * radius;
+		},
+		2
+	);
 
-	// A 0.026 stroke is a quarter of a pixel at 16 px. Below that the outline half is simply not
-	// there, so it is widened until it is at least one pixel across.
-	const stroke = Math.max(0.026, 1.15 / size);
-	// Grown so it survives a pixel grid, but capped: past about a twentieth of the tile the eye is
-	// bigger than the head it sits in, and the pair of them close into a dark band.
-	const pupil = Math.min(0.046, Math.max(0.026, 1.1 / size));
-
-	/**
-	 * Under 40 px the left half is filled rather than outlined.
-	 *
-	 * A hairline and a fill cannot share an icon that small — the stroke needed to survive is so
-	 * heavy it closes the shape it is supposed to describe. Two solid halves say the same thing and
-	 * stay a penguin, which is what the taskbar and the tab strip actually get.
-	 */
-	const outlined = size >= 40;
+	// Held at a full pixel and a bit, so the outline reads as a line at every size rather than
+	// fading out under 40 px, which is where the taskbar lives.
+	const stroke = Math.max(0.03, 1.45 / size);
+	// Grown for the pixel grid, but capped: past about a twentieth of the tile the eye is wider than
+	// the head it sits in and the pair close into a dark band. Measured before the zoom, like every
+	// other radius here.
+	const pupil = Math.min(0.05, Math.max(0.028, 1 / size / ZOOM));
 
 	const painted = [
 		[right(BODY), (x) => over(ACCENT, ACCENT_FAR, Math.min(1, Math.max(0, (x - 0.5) * 2.6)))],
@@ -119,35 +148,41 @@ function render(size) {
 		[right(BELLY), LIGHT],
 		[right(FACE), LIGHT],
 		[right(BEAK), BEAK_COLOUR],
-		[right(ellipse(0.548, 0.315, pupil, pupil)), INK]
+		[right(eye(0.548, pupil)), INK]
 	];
 
-	const eroded = (w) => (x, y) =>
-		ellipse(0.5, 0.605, 0.245 - w, 0.275 - w)(x, y) ||
-		ellipse(0.5, 0.335, 0.178 - w, 0.178 - w)(x, y);
+	const eroded = (w) =>
+		big(
+			(x, y) =>
+				ellipse(0.5, 0.605, 0.245 - w, 0.275 - w)(x, y) ||
+				ellipse(0.5, 0.335, 0.178 - w, 0.178 - w)(x, y)
+		);
 
-	const bare = outlined
-		? [
-				[left(edge(BODY, eroded(stroke))), LIGHT],
-				[left(edge(BELLY, ellipse(0.5, 0.645, 0.163 - stroke * 0.8, 0.212 - stroke * 0.8))), LIGHT],
-				// Filled rather than outlined: a flipper and a foot are thinner than the stroke that
-				// would have to describe them, so outlining either one closes it into a blob.
-				[left(FLIPPER_L), LIGHT],
-				[left(FOOT_L), LIGHT],
-				[left(ellipse(0.452, 0.315, pupil, pupil)), LIGHT]
-			]
-		: [
-				// Unpainted, so a neutral grey rather than the belly's white — against white the split
-				// disappears into the belly and the mark becomes one pale blob with a coloured edge.
-				[left(BODY), [130, 134, 150]],
-				[left(FLIPPER_L), [112, 116, 132]],
-				[left(FOOT_L), [112, 116, 132]],
-				[left(BELLY), [222, 224, 233]],
-				[left(FACE), [222, 224, 233]],
-				...(size >= 24 ? [[left(ellipse(0.452, 0.315, pupil, pupil)), INK]] : [])
-			];
+	const bare = [
+		[left(edge(BODY, eroded(stroke / ZOOM))), LIGHT],
+		// Filled rather than outlined: a flipper and a foot are thinner than the stroke that would
+		// have to describe them, so outlining either one closes it into a blob.
+		[left(FLIPPER_L), LIGHT],
+		[left(FOOT_L), LIGHT],
+		[left(eye(0.452, pupil)), LIGHT],
+		// The belly line is the first thing to go: below about forty pixels it sits within a pixel of
+		// the body line and the two merge into a thick smear down the side.
+		...(size >= 40
+			? [
+					[
+						left(
+							edge(BELLY, big(ellipse(0.5, 0.645, 0.163 - stroke / ZOOM, 0.212 - stroke / ZOOM)))
+						),
+						LIGHT
+					]
+				]
+			: [])
+	];
 
-	const layers = [...painted, ...bare].map(([test, colour]) => [coverage(size, test), colour]);
+	const layers = [...painted, ...bare].map(([test, colour]) => [
+		coverage(size, test, bite),
+		colour
+	]);
 
 	const pixels = Buffer.alloc(size * size * 4);
 	for (let y = 0; y < size; y += 1) {
