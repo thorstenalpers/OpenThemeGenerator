@@ -1,5 +1,6 @@
 import { buildTheme, type ThemeDraft } from './generate';
 import { REGISTRY_THEMES, type RegistryTheme } from './registry-themes';
+import { SIDEBAR_SPECS } from './sidebar';
 import { TEMPLATE_DRAFTS } from './templates';
 import type { Theme } from './theme';
 
@@ -331,6 +332,112 @@ export const PRESET_DRAFTS: readonly ThemeDraft[] = [
 			sidebarWidth: 14,
 			sidebarRail: 3
 		}
+	},
+
+	// And four for the sidebars that are lit rather than filled. Each palette is chosen for what the
+	// relief needs rather than for itself: a raised key wants a surface bright enough to catch a
+	// highlight, and soft relief wants a mid-tone, because a light edge and a dark one both have to
+	// be visible against it — on white or on black, one of the two disappears.
+	{
+		id: 'clavier',
+		name: 'Clavier',
+		description:
+			'Raised ivory keys that press in when you pick one: a light edge along the top, a dark one beneath, and a shadow cast under the whole row.',
+		tags: ['sidebar', 'monochrome', 'warm'],
+		recipe: {
+			seed: '#1a1712',
+			neutralChroma: 0.007,
+			neutralHue: 80,
+			accentTint: 0,
+			harmony: 'mono',
+			sidebarTone: 'contrast',
+			lightBackground: 0.98,
+			darkBackground: 0.19
+		},
+		layout: {
+			sidebarStyle: 'keys',
+			radius: 0.25,
+			density: 'normal',
+			elevation: 'subtle',
+			sidebarWidth: 16
+		}
+	},
+	{
+		id: 'pebble',
+		name: 'Pebble',
+		description:
+			'Soft relief on a mid-grey page: rows extruded from the surface rather than drawn on it, pressed in when current.',
+		tags: ['sidebar', 'minimal', 'cool'],
+		recipe: {
+			seed: '#64748b',
+			neutralChroma: 0.006,
+			neutralHue: 250,
+			accentTint: 0.2,
+			harmony: 'mono',
+			contrast: 'high',
+			sidebarTone: 'flush',
+			// Neumorphism needs a mid-tone to sit on: the light edge vanishes on white and the dark
+			// one on black, and with either gone the row stops reading as raised at all.
+			lightBackground: 0.93,
+			darkBackground: 0.26
+		},
+		layout: {
+			sidebarStyle: 'neumorph',
+			radius: 0.7,
+			density: 'comfortable',
+			borderWidth: 0,
+			elevation: 'none',
+			sidebarWidth: 17
+		}
+	},
+	{
+		id: 'lagoon',
+		name: 'Lagoon',
+		description:
+			'Glossy pills with a highlight across the top edge, the way early Aqua drew a button. Loud, and forty years of muscle memory old.',
+		tags: ['sidebar', 'cool', 'vivid'],
+		recipe: {
+			seed: '#0ea5e9',
+			neutralChroma: 0.008,
+			neutralHue: 230,
+			accentTint: 0.35,
+			harmony: 'analogous',
+			sidebarTone: 'contrast',
+			lightBackground: 0.985,
+			darkBackground: 0.18
+		},
+		layout: {
+			sidebarStyle: 'aqua',
+			radius: 0.75,
+			density: 'normal',
+			elevation: 'soft',
+			sidebarWidth: 16
+		}
+	},
+	{
+		id: 'letterpress',
+		name: 'Letterpress',
+		description:
+			'Rows cut into the page rather than laid on it: a hairline shadow at the top of each and a light one under it, deepening on the current row.',
+		tags: ['sidebar', 'monochrome', 'warm'],
+		recipe: {
+			seed: '#26211c',
+			neutralChroma: 0.008,
+			neutralHue: 70,
+			accentTint: 0,
+			harmony: 'mono',
+			contrast: 'high',
+			sidebarTone: 'tinted',
+			lightBackground: 0.96,
+			darkBackground: 0.21
+		},
+		layout: {
+			sidebarStyle: 'embossed',
+			radius: 0.35,
+			density: 'normal',
+			elevation: 'subtle',
+			sidebarWidth: 16
+		}
 	}
 ];
 
@@ -354,15 +461,27 @@ function fromRegistry(entry: RegistryTheme): ThemeDraft {
 	};
 }
 
+/**
+ * The tag nobody writes by hand.
+ *
+ * Whether a theme is one of the lit ones follows from its sidebar style, so deriving it is the only
+ * way it cannot drift — and without it the four relief designs were reachable only by knowing that
+ * `Neumorph` and `Ivory Keys` are what they are called, which is no way to find anything.
+ */
+function tagged(theme: Theme): Theme {
+	if (SIDEBAR_SPECS[theme.layout.sidebarStyle].relief === 'flat') return theme;
+	return { ...theme, tags: [...theme.tags, '3d'] };
+}
+
 /** Made here, from a recipe. Editing one and pressing regenerate gives the design back. */
-export const GENERATED_PRESETS: readonly Theme[] = PRESET_DRAFTS.map(buildTheme);
+export const GENERATED_PRESETS: readonly Theme[] = PRESET_DRAFTS.map(buildTheme).map(tagged);
 
 /** The colour × sidebar combinations, ready to take. Same machinery, more ground covered. */
-export const TEMPLATE_PRESETS: readonly Theme[] = TEMPLATE_DRAFTS.map(buildTheme);
+export const TEMPLATE_PRESETS: readonly Theme[] = TEMPLATE_DRAFTS.map(buildTheme).map(tagged);
 
 /** Published by other people, carried as-is. */
 export const REGISTRY_PRESETS: readonly Theme[] = REGISTRY_THEMES.map((entry) =>
-	buildTheme(fromRegistry(entry))
+	tagged(buildTheme(fromRegistry(entry)))
 );
 
 export const PRESETS: readonly Theme[] = [
