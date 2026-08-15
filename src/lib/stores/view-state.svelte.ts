@@ -36,6 +36,8 @@ class ViewState {
 		page: number;
 		/** Two cards a row, one wide card a row, or a dense table. */
 		layout: 'grid' | 'single' | 'list';
+		/** Which modes each card previews. Dropping one gives the other the whole card. */
+		modes: { light: boolean; dark: boolean };
 		/** Ordered by, in the list view stacked: the first click is primary, the next secondary. */
 		sort: { key: 'curated' | 'name' | 'readability' | 'added' | 'sidebar'; desc: boolean }[];
 	}>({
@@ -44,6 +46,7 @@ class ViewState {
 		search: '',
 		page: 1,
 		layout: 'grid',
+		modes: { light: true, dark: true },
 		sort: [{ key: 'curated', desc: false }]
 	});
 

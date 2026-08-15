@@ -118,6 +118,28 @@
 		{ id: 'list' as const, icon: ListIcon, label: t.gallery.layoutList }
 	]);
 
+	const modes = $derived([
+		{ id: 'light' as const, label: t.common.light },
+		{ id: 'dark' as const, label: t.common.dark }
+	]);
+
+	const shownModes = $derived(modes.filter((mode) => viewState.gallery.modes[mode.id]));
+
+	/**
+	 * Turning one off gives the other the whole card. Turning the last one off would leave a row of
+	 * names with nothing to look at, so it takes the other one's place instead.
+	 */
+	function toggleMode(id: 'light' | 'dark'): void {
+		const other = id === 'light' ? 'dark' : 'light';
+		const next = !viewState.gallery.modes[id];
+
+		viewState.gallery.modes = {
+			...viewState.gallery.modes,
+			[id]: next,
+			...(next ? {} : { [other]: true })
+		};
+	}
+
 	const columns = $derived([
 		{ key: 'name' as const, label: t.gallery.columnName },
 		{ key: 'sidebar' as const, label: t.gallery.columnSidebar },
@@ -212,6 +234,20 @@
 				>
 					<Icon class="size-4" />
 				</Button>
+			{/each}
+		</div>
+
+		<div class="flex items-center gap-3">
+			{#each modes as mode (mode.id)}
+				<label class="flex cursor-pointer items-center gap-1.5 text-xs select-none">
+					<input
+						type="checkbox"
+						class="size-3.5"
+						checked={viewState.gallery.modes[mode.id]}
+						onchange={() => toggleMode(mode.id)}
+					/>
+					{mode.label}
+				</label>
 			{/each}
 		</div>
 
@@ -356,9 +392,10 @@
 				     sidebar is what would make the whole category pointless. -->
 				{@const surface = preset.tags.includes('landing') ? 'landing' : 'app'}
 				<article class="flex flex-col gap-3 rounded-lg border bg-card p-3 text-card-foreground">
-					<div class="grid gap-2 sm:grid-cols-2">
-						<ThemePreview theme={preset} mode="light" {surface} />
-						<ThemePreview theme={preset} mode="dark" {surface} />
+					<div class="grid gap-2" class:sm:grid-cols-2={shownModes.length === 2}>
+						{#each shownModes as mode (mode.id)}
+							<ThemePreview theme={preset} mode={mode.id} {surface} />
+						{/each}
 					</div>
 
 					<div class="flex flex-col gap-1">{@render meta(preset)}</div>
