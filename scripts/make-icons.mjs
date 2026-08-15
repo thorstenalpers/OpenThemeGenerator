@@ -12,8 +12,11 @@ import { fileURLToPath } from 'node:url';
 const OUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src-tauri', 'icons');
 
 const BACKGROUND = [16, 16, 20];
-const LIGHT = [245, 245, 245];
+const LIGHT = [245, 246, 250];
 const ACCENT = [99, 102, 241];
+const ACCENT_FAR = [168, 85, 247];
+const BEAK_COLOUR = [245, 158, 11];
+const INK = [18, 18, 24];
 
 /** Supersampling factor. Three passes per axis is enough to hide the stair-steps at 16 px. */
 const SAMPLES = 3;
@@ -36,7 +39,55 @@ function over(base, layer, alpha) {
 	return base.map((channel, index) => Math.round(channel * (1 - alpha) + layer[index] * alpha));
 }
 
-/** Rounded square, then the two circles the favicon carries. Coordinates are 0–1. */
+/* Shape tests, all in 0–1 across the tile. */
+
+const ellipse =
+	(cx, cy, rx, ry, deg = 0) =>
+	(x, y) => {
+		const a = (deg * Math.PI) / 180;
+		const dx = (x - cx) * Math.cos(a) + (y - cy) * Math.sin(a);
+		const dy = -(x - cx) * Math.sin(a) + (y - cy) * Math.cos(a);
+		return (dx / rx) ** 2 + (dy / ry) ** 2 <= 1;
+	};
+
+/**
+ * The outline of a silhouette, not of the shapes it is made of.
+ *
+ * Outlining the body ellipse and the head ellipse separately draws both of them in full, including
+ * the halves buried inside the other — two arcs crossing where the neck should be, which reads as a
+ * scribble. Eroding the union first leaves only the edge you can actually see.
+ */
+const edge = (shape, eroded) => (x, y) => shape(x, y) && !eroded(x, y);
+
+const triangle = (ax, ay, bx, by, cx, cy) => {
+	const side = (px, py, x1, y1, x2, y2) => (x2 - x1) * (py - y1) - (y2 - y1) * (px - x1);
+	return (x, y) => {
+		const d = [side(x, y, ax, ay, bx, by), side(x, y, bx, by, cx, cy), side(x, y, cx, cy, ax, ay)];
+		return !(d.some((v) => v < 0) && d.some((v) => v > 0));
+	};
+};
+
+const left = (test) => (x, y) => x < 0.5 && test(x, y);
+const right = (test) => (x, y) => x >= 0.5 && test(x, y);
+
+const BODY = (x, y) =>
+	ellipse(0.5, 0.605, 0.245, 0.275)(x, y) || ellipse(0.5, 0.335, 0.178, 0.178)(x, y);
+const BELLY = ellipse(0.5, 0.645, 0.163, 0.212);
+const FACE = ellipse(0.5, 0.35, 0.128, 0.118);
+const BEAK = triangle(0.458, 0.372, 0.542, 0.372, 0.5, 0.425);
+const FOOT_R = ellipse(0.602, 0.878, 0.078, 0.034, 8);
+const FOOT_L = ellipse(0.398, 0.878, 0.078, 0.034, -8);
+const FLIPPER_L = ellipse(0.253, 0.63, 0.052, 0.15, -18);
+const FLIPPER_R = ellipse(0.747, 0.63, 0.052, 0.15, 18);
+
+/**
+ * The mark: one penguin, unpainted on the left and themed on the right.
+ *
+ * It is the whole app in two shapes — the same thing before and after a theme reaches it — and it
+ * survives the icon's real problem, which is 16 px. Everything here is drawn per size rather than
+ * scaled down from one master, so the strokes and the eye can be widened where a hairline would
+ * fall below a pixel and disappear.
+ */
 function render(size) {
 	const radius = 0.22;
 	const inSquare = coverage(size, (x, y) => {
@@ -44,23 +95,79 @@ function render(size) {
 		const dy = Math.max(radius - y, y - (1 - radius), 0);
 		return dx * dx + dy * dy <= radius * radius;
 	});
-	const circle = (cx, cy, r) => coverage(size, (x, y) => (x - cx) ** 2 + (y - cy) ** 2 <= r * r);
-	const inLight = circle(0.375, 0.41, 0.172);
-	const inAccent = circle(0.625, 0.59, 0.172);
+
+	// A 0.026 stroke is a quarter of a pixel at 16 px. Below that the outline half is simply not
+	// there, so it is widened until it is at least one pixel across.
+	const stroke = Math.max(0.026, 1.15 / size);
+	// Grown so it survives a pixel grid, but capped: past about a twentieth of the tile the eye is
+	// bigger than the head it sits in, and the pair of them close into a dark band.
+	const pupil = Math.min(0.046, Math.max(0.026, 1.1 / size));
+
+	/**
+	 * Under 40 px the left half is filled rather than outlined.
+	 *
+	 * A hairline and a fill cannot share an icon that small — the stroke needed to survive is so
+	 * heavy it closes the shape it is supposed to describe. Two solid halves say the same thing and
+	 * stay a penguin, which is what the taskbar and the tab strip actually get.
+	 */
+	const outlined = size >= 40;
+
+	const painted = [
+		[right(BODY), (x) => over(ACCENT, ACCENT_FAR, Math.min(1, Math.max(0, (x - 0.5) * 2.6)))],
+		[right(FLIPPER_R), ACCENT_FAR],
+		[right(FOOT_R), BEAK_COLOUR],
+		[right(BELLY), LIGHT],
+		[right(FACE), LIGHT],
+		[right(BEAK), BEAK_COLOUR],
+		[right(ellipse(0.548, 0.315, pupil, pupil)), INK]
+	];
+
+	const eroded = (w) => (x, y) =>
+		ellipse(0.5, 0.605, 0.245 - w, 0.275 - w)(x, y) ||
+		ellipse(0.5, 0.335, 0.178 - w, 0.178 - w)(x, y);
+
+	const bare = outlined
+		? [
+				[left(edge(BODY, eroded(stroke))), LIGHT],
+				[left(edge(BELLY, ellipse(0.5, 0.645, 0.163 - stroke * 0.8, 0.212 - stroke * 0.8))), LIGHT],
+				// Filled rather than outlined: a flipper and a foot are thinner than the stroke that
+				// would have to describe them, so outlining either one closes it into a blob.
+				[left(FLIPPER_L), LIGHT],
+				[left(FOOT_L), LIGHT],
+				[left(ellipse(0.452, 0.315, pupil, pupil)), LIGHT]
+			]
+		: [
+				// Unpainted, so a neutral grey rather than the belly's white — against white the split
+				// disappears into the belly and the mark becomes one pale blob with a coloured edge.
+				[left(BODY), [130, 134, 150]],
+				[left(FLIPPER_L), [112, 116, 132]],
+				[left(FOOT_L), [112, 116, 132]],
+				[left(BELLY), [222, 224, 233]],
+				[left(FACE), [222, 224, 233]],
+				...(size >= 24 ? [[left(ellipse(0.452, 0.315, pupil, pupil)), INK]] : [])
+			];
+
+	const layers = [...painted, ...bare].map(([test, colour]) => [coverage(size, test), colour]);
 
 	const pixels = Buffer.alloc(size * size * 4);
 	for (let y = 0; y < size; y += 1) {
 		for (let x = 0; x < size; x += 1) {
-			const alpha = inSquare(x, y);
 			let colour = BACKGROUND;
-			colour = over(colour, LIGHT, inLight(x, y));
-			colour = over(colour, ACCENT, inAccent(x, y) * 0.92);
+			for (const [cover, paint] of layers) {
+				const alpha = cover(x, y);
+				if (alpha <= 0) continue;
+				colour = over(
+					colour,
+					typeof paint === 'function' ? paint((x + 0.5) / size, (y + 0.5) / size) : paint,
+					alpha
+				);
+			}
 
 			const offset = (y * size + x) * 4;
 			pixels[offset] = colour[0];
 			pixels[offset + 1] = colour[1];
 			pixels[offset + 2] = colour[2];
-			pixels[offset + 3] = Math.round(alpha * 255);
+			pixels[offset + 3] = Math.round(inSquare(x, y) * 255);
 		}
 	}
 	return pixels;
