@@ -311,6 +311,10 @@
 		width: 100%;
 		height: var(--sidebar-item-height);
 		align-items: center;
+		/* The active-edge indicator parks itself outside the start edge when the row is not current.
+		   Without this it is painted there rather than hidden — a row's own margin is not a clip, so
+		   every entry wore the stroke that is supposed to mark exactly one. */
+		overflow: hidden;
 		padding-inline: calc(var(--spacing-base) * 2.5);
 		border: var(--sidebar-item-border) solid var(--sidebar-border);
 		/* Written after the shorthand and not folded into it: a shorthand resets all four edges, and

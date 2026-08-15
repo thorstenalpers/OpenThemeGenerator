@@ -349,7 +349,7 @@
 		<div
 			class={viewState.gallery.layout === 'grid'
 				? 'grid gap-4 xl:grid-cols-2'
-				: 'mx-auto flex w-full max-w-4xl flex-col gap-4'}
+				: 'flex w-full flex-col gap-4'}
 		>
 			{#each visible as preset (preset.id)}
 				<!-- A landing template is shown as a landing page. Judging one from a screenshot of a
