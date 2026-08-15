@@ -16,19 +16,21 @@ drop in rather than a snippet you reconcile.
 
 ## What it does
 
-- **A hundred and twelve themes** — fourteen curated presets, sixty templates that pair a colour
+- **A hundred and sixteen themes** — eighteen curated presets, sixty templates that pair a colour
   family with a sidebar design (weighted towards black and white, then blue and red, then the loud
   ones), eight aimed at a marketing page rather than a dashboard, and thirty published shadcn themes
   imported from the tweakcn registry and carried exactly as published. The gallery filters by
   source, tag and name, shows them two per row, one per row or as a detail list with multi-column
-  sort (shift-click to add a tie-breaker), and always puts the theme you are working on first
-  whatever the sort says.
+  sort (shift-click to add a tie-breaker), can drop a mode so one preview takes the whole card, and
+  always puts the theme you are working on first whatever the sort says.
 - **Twenty sidebar designs** — `shadcn`, `vercel`, `linear`, `notion`, `stripe`, `slack`, `rail`,
   `outline`, `docked`, `piano`, `brutalist`, `x`, the OS panes (`win11`, `macos`, `gnome`,
   `material`), and four with real relief: `keys` (raised ivory keys that press in when active),
   `neumorph`, `aqua` and `embossed`. The relief is box-shadow and a gradient only — no `filter`,
-  no transform — so forty rows still composite in a single layer. Icons either inherit the text
-  colour or keep their semantic defaults (blue for info, green for members, amber for settings).
+  no transform — so forty rows still composite in a single layer. The four have a preset each
+  (Clavier, Pebble, Lagoon, Letterpress) and carry a `3d` tag derived from the style itself, so the
+  gallery can filter to them rather than requiring you to know their names. Icons either inherit the
+  text colour or keep their semantic defaults (blue for info, green for members, amber for settings).
   The sidebar is always on the left and always collapsible to the rail; the style changes what it
   looks like, never how it behaves. **The app's own navigation is the same component reading the
   same variables**, so what you see beside the editor and what you see around it cannot drift apart
