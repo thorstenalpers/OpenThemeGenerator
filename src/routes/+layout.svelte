@@ -7,7 +7,6 @@
 	import ModeToggle from '$lib/components/mode-toggle.svelte';
 	import SidebarShell, { ROUTES } from '$lib/components/sidebar-shell.svelte';
 	import { isMockHost } from '$lib/bridge/client';
-	import { i18n } from '$lib/i18n/index.svelte';
 	import { settings } from '$lib/stores/settings.svelte';
 	import { workshop } from '$lib/stores/workshop.svelte';
 	import { applyToApp } from '$lib/theme/apply';
@@ -80,9 +79,13 @@
 		<header class="flex h-12 shrink-0 items-center justify-end gap-2 border-b px-3">
 			<ModeToggle />
 		</header>
+		<!-- Not translated and not a token in the dictionary: nobody running the app can ever see it.
+		     It is a note to whoever is developing in a browser. `isMockHost` is false in a build, so
+		     the branch never runs — its markup still rides along in the chunk, because the compiler
+		     hoists every template to module scope and this one is small enough not to chase. -->
 		{#if isMockHost()}
 			<div class="border-b border-warning/40 bg-warning/10 px-6 py-2 text-xs text-muted-foreground">
-				{i18n.t.common.mockHost}
+				Development browser without the desktop host — anything that touches disk is stubbed.
 			</div>
 		{/if}
 		<main bind:this={scroller} class="min-h-0 flex-1 overflow-y-auto">

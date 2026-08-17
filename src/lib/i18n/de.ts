@@ -2,7 +2,6 @@ import type { Translations } from './en';
 
 export const de: Translations = {
 	common: {
-		mockHost: 'Läuft im Browser ohne Desktop-Host — alles, was Dateien anfasst, ist Attrappe.',
 		copy: 'Kopieren',
 		copied: 'Kopiert',
 		light: 'Hell',

@@ -1,7 +1,5 @@
 export const en = {
 	common: {
-		mockHost:
-			'Running in a browser without the desktop host — anything that touches disk is stubbed.',
 		copy: 'Copy',
 		copied: 'Copied',
 		light: 'Light',
