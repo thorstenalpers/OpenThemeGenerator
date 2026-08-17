@@ -106,7 +106,7 @@ fn rank(name: &str) -> u8 {
     }
 }
 
-fn collect(root: &Path, current: &Path, depth: usize, found: &mut Vec<PathBuf>) {
+fn collect(current: &Path, depth: usize, found: &mut Vec<PathBuf>) {
     if depth > MAX_DEPTH {
         return;
     }
@@ -125,7 +125,7 @@ fn collect(root: &Path, current: &Path, depth: usize, found: &mut Vec<PathBuf>) 
             // hold a git worktree of the whole project, and scanning that reads the same tokens a
             // second time under a different path — half the prompt budget spent on a copy.
             if !name.starts_with('.') && !SKIP.contains(&name) {
-                collect(root, &path, depth + 1, found);
+                collect(&path, depth + 1, found);
             }
         } else if is_wanted(&path, name) {
             found.push(path);
@@ -207,7 +207,7 @@ pub fn scan(root: &str) -> AppResult<ProjectContext> {
     }
 
     let mut found = Vec::new();
-    collect(&base, &base, 0, &mut found);
+    collect(&base, 0, &mut found);
     found.sort_by_key(|path| {
         let name = path
             .file_name()
@@ -356,7 +356,10 @@ mod tests {
 
         write("src/app.css", "@import 'tailwindcss';");
         write("components.json", "{}");
-        write(".claude/worktrees/copy/src/app.css", "@import 'tailwindcss';");
+        write(
+            ".claude/worktrees/copy/src/app.css",
+            "@import 'tailwindcss';",
+        );
         write(".claude/skills/vendored/package.json", "{}");
         write("node_modules/some-package/package.json", "{}");
 

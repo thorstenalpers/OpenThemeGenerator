@@ -1,4 +1,9 @@
+<img src="src-tauri/icons/128x128.png" alt="" width="72" align="left" hspace="12" />
+
 # OpenThemeGenerator
+
+[![CI](https://github.com/thorstenalpers/OpenThemeGenerator/actions/workflows/ci.yml/badge.svg)](https://github.com/thorstenalpers/OpenThemeGenerator/actions/workflows/ci.yml)
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue.svg)](LICENSE)
 
 A desktop theme generator for shadcn — and for anything else that reads CSS custom properties.
 
@@ -140,6 +145,11 @@ program is the hosted assistant, and the local binary is the default.
 
 ## Development
 
+You need **Node 22**, a **Rust toolchain**, and on Windows the **WebView2 runtime** — which ships
+with Windows 11 and every recent 10. Nothing else: the icons, the reference stylesheet and the
+imported theme list are all produced by scripts in this repository rather than fetched at build
+time.
+
 ```bash
 npm install
 npm run dev
@@ -155,16 +165,34 @@ starts drifting from the first. For the real thing:
 npm run start
 ```
 
-| Command                                           | What it does                                             |
-| ------------------------------------------------- | -------------------------------------------------------- |
-| `npm run check`                                   | `svelte-check` against the app tsconfig                  |
-| `npm run lint`                                    | prettier and eslint                                      |
-| `npm test`                                        | vitest — colour maths, the generator, and every exporter |
-| `npm run app:build`                               | the NSIS installer                                       |
-| `npm run icons`                                   | regenerates the icon set from `scripts/make-icons.mjs`   |
-| `npm run reference:theme`                         | rewrites `reference/theme.css` from a built-in preset    |
-| `cargo test --manifest-path src-tauri/Cargo.toml` | the host's own tests                                     |
+| Command                                             | What it does                                             |
+| --------------------------------------------------- | -------------------------------------------------------- |
+| `npm run check`                                     | `svelte-check` against the app tsconfig                  |
+| `npm run lint`                                      | prettier and eslint                                      |
+| `npm run format`                                    | writes the formatting rather than checking it            |
+| `npm test`                                          | vitest — colour maths, the generator, and every exporter |
+| `npm run build`                                     | the static front end                                     |
+| `npm run app:build`                                 | the NSIS installer                                       |
+| `npm run icons`                                     | regenerates the icon set from `scripts/make-icons.mjs`   |
+| `npm run reference:theme`                           | rewrites `reference/theme.css` from a built-in preset    |
+| `cargo test --manifest-path src-tauri/Cargo.toml`   | the host's own tests                                     |
+| `cargo clippy --manifest-path src-tauri/Cargo.toml` | the lints CI fails on                                    |
+
+## Contributing
+
+`main` is protected: changes arrive as a pull request, and CI has to be green before it can merge.
+The workflow runs the table above — lint, types, tests and build on Linux, and `cargo fmt`,
+`clippy` and the host's tests on Windows, where the app actually ships.
+
+Two things the tests care about more than style:
+
+- **Every theme this app derives clears 4.5:1** on every surface/label pair, in both modes. So does
+  `app.css`, the window's own chrome, which has its own test because the generator cannot keep it
+  honest. Imported themes are exempt — they are other people's designs, carried as published, and
+  the gallery reports what they score instead of retinting them.
+- **Nothing reaches the network at runtime.** The imported theme list is generated into the
+  repository by `scripts/fetch-registry-themes.mjs` and read from disk.
 
 ## Licence
 
-MIT.
+[MIT](LICENSE).

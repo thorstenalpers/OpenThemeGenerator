@@ -9,3 +9,25 @@
 *.bat text eol=crlf
 
 *.sh text eol=lf
+
+###############################################################################
+# Agent tooling. It is configuration for the machines that help write this, not
+# part of the program: kept out of the language statistics, and out of the
+# archives GitHub builds for a release.
+###############################################################################
+.claude/** linguist-vendored export-ignore
+.agents/** linguist-vendored export-ignore
+.github/** export-ignore
+
+###############################################################################
+# Generated, and large enough to bury a diff. `registry-themes.ts` is written by
+# `scripts/fetch-registry-themes.mjs` and `reference/theme.css` by
+# `scripts/write-reference-theme.mjs`; neither is edited by hand.
+###############################################################################
+src/lib/theme/registry-themes.ts linguist-generated
+reference/theme.css linguist-generated
+package-lock.json linguist-generated
+
+# Binary, so git offers no line diff and no merge it could get wrong.
+*.png binary
+*.ico binary
