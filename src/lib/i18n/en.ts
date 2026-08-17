@@ -183,6 +183,13 @@ export const en = {
 			'The shadcn set as shadcn-svelte and shadcn/ui ship it, plus success, warning and five chart slots. A project that declares fewer simply ignores the rest.',
 		formats: 'Formats',
 		reference: 'Reference project',
+		update: 'Update',
+		updateAvailable: (version: string) => `Version ${version} is published.`,
+		updateInstall: 'Download and install',
+		updateDownloading: (percent: number) => `Downloading — ${percent}%`,
+		updateReady: 'Installed. It takes over on the next start.',
+		updateRestart: 'Restart now',
+		updateFailed: 'The update check did not get through.',
 		referenceBody:
 			'reference/ in this repository is a page with no framework at all. It reads the plain-CSS export, and it is the shortest proof that a theme from here works outside Svelte.',
 		licence: 'MIT'

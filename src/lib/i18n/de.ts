@@ -193,6 +193,13 @@ export const de: Translations = {
 			'Der shadcn-Satz, wie shadcn-svelte und shadcn/ui ihn ausliefern, dazu success, warning und fünf Diagramm-Plätze. Ein Projekt, das weniger deklariert, ignoriert den Rest einfach.',
 		formats: 'Formate',
 		reference: 'Referenzprojekt',
+		update: 'Aktualisierung',
+		updateAvailable: (version: string) => `Version ${version} ist veröffentlicht.`,
+		updateInstall: 'Herunterladen und installieren',
+		updateDownloading: (percent: number) => `Wird geladen — ${percent} %`,
+		updateReady: 'Installiert. Beim nächsten Start ist sie aktiv.',
+		updateRestart: 'Jetzt neu starten',
+		updateFailed: 'Die Aktualisierungsprüfung kam nicht durch.',
 		referenceBody:
 			'reference/ in diesem Repository ist eine Seite ganz ohne Framework. Sie liest den Plain-CSS-Export und ist der kürzeste Beweis, dass ein Theme von hier auch außerhalb von Svelte funktioniert.',
 		licence: 'MIT'
