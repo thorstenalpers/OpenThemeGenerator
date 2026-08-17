@@ -62,10 +62,14 @@ drop in rather than a snippet you reconcile.
 - **A studio that holds several themes at once** — each one you open is a tab, listed under Studio
   in the sidebar and named in the window title. Renaming a theme never hides where it came from:
   the heading keeps saying what it is based on, and an info button shows the final differences
-  against that template — recipe, layout and hand-set tokens — as JSON.
+  against what the tab was opened holding — recipe, layout and hand-set tokens — as JSON. **Reset**
+  undoes all three at once, back to that same state.
 - **Six export formats** — see below.
 - **An assistant** — describe the theme in prose, optionally attach a project folder, and the reply
-  is parsed into a validated theme and opened in the studio.
+  is parsed into a validated theme and opened in the studio. Or go the other way and **import a
+  project**: it reads the look one already has — its stylesheet, its Tailwind config, whatever its
+  team named their variables — and lands it on this token set. Adjust it, export it, and the project
+  it came from can take it back.
 - **A reference project** — `reference/`, a page with no framework at all, built on the plain-CSS
   export.
 
@@ -114,6 +118,16 @@ files and 48 KB, with generated and vendored folders skipped. The scan's one-lin
 is installed; Tailwind v4; existing tokens are written in OKLCH") goes into the prompt with them, so
 the answer fits the project rather than a guess about it.
 
+**Import** uses the same scan under a different brief: extract, do not design. Use the values that
+are there, map the project's own naming onto the token set, derive only what is genuinely absent and
+say which ones those were — and if a project has no theme worth reading, say so rather than invent a
+brand colour. No conversation history goes with it, so the answer depends on the project rather than
+on what was asked five turns ago.
+
+Nothing else in the app reaches the network. The gallery, including the thirty imported shadcn
+themes, is checked into the repository and read from disk; the only outbound request in the whole
+program is the hosted assistant, and the local binary is the default.
+
 ## Development
 
 ```bash
@@ -121,8 +135,11 @@ npm install
 npm run dev
 ```
 
-`npm run dev` serves the UI in a plain browser with a mock host: every view works, and the commands
-that touch disk say so instead of pretending. For the real thing:
+`npm run dev` serves the UI in a plain browser with a stub host: every view works, and the commands
+that touch disk say so instead of pretending. It exists so that iterating on the interface costs a
+hot reload rather than a Rust build, and it is loaded behind `import.meta.env.DEV` — a built app has
+a real host by definition, and carrying a fake one it can never reach is how a second code path
+starts drifting from the first. For the real thing:
 
 ```bash
 npm run start

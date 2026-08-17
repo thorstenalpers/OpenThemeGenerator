@@ -16,6 +16,7 @@ export interface Origin {
 	name: string;
 	recipe: Recipe;
 	layout: Layout;
+	overrides: { light: Palette; dark: Palette };
 }
 
 interface Current {
@@ -65,19 +66,37 @@ export function describeChanges(current: Current, origin: Origin | null): Change
 		}
 	}
 
-	// The derived palette the recipe *would* produce, so a token override is shown against what it
-	// replaced rather than against nothing.
+	/**
+	 * A token counts as changed against what the tab was opened holding, not against what the recipe
+	 * would derive.
+	 *
+	 * The two are the same for a theme made here, which is why the difference stayed hidden: it opens
+	 * with no overrides at all, so every one that appears is a hand edit. An imported theme opens as
+	 * nothing but overrides — sixty-four published values that the seed was never going to derive —
+	 * and comparing those against the recipe reported the whole palette as manual work on a theme
+	 * nobody had touched.
+	 *
+	 * The derived palette still supplies the `from` where the origin has nothing to say, so a token
+	 * overruled on a generated theme is shown against the value it stopped following.
+	 */
 	const derived = buildPalettes(current.recipe);
 	for (const mode of ['light', 'dark'] as const) {
-		for (const [token, value] of Object.entries(current.overrides[mode])) {
-			const before = derived[mode][token];
-			if (before === value) continue;
+		const before = origin?.overrides[mode] ?? {};
+		const after = current.overrides[mode];
+
+		for (const token of new Set([...Object.keys(before), ...Object.keys(after)])) {
+			const was = before[token] ?? derived[mode][token];
+			// Dropped from the overrides: the token has gone back to following the recipe, which is a
+			// change from an imported palette even though nothing was typed.
+			const now = after[token] ?? derived[mode][token];
+			if (was === now) continue;
+
 			changes.push({
 				kind: 'colour',
 				scope: mode,
 				label: token,
-				from: before ?? '—',
-				to: value
+				from: was ?? '—',
+				to: now ?? '—'
 			});
 		}
 	}
