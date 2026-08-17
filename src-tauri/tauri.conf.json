@@ -32,6 +32,18 @@
 				"installerIcon": "icons/icon.ico",
 				"uninstallerIcon": "icons/icon.ico"
 			}
+		},
+		"createUpdaterArtifacts": true
+	},
+	"plugins": {
+		"updater": {
+			"pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEExNTQ1MjE2MzE1NDM1NDUKUldSRk5WUXhGbEpVb1o0Z0tFUjJOT3Z5bmwzR1ZybzFYelNETHVIbjVnM29Ob1FDM2x0QWI0RDgK",
+			"endpoints": [
+				"https://github.com/thorstenalpers/OpenThemeGenerator/releases/latest/download/latest.json"
+			],
+			"windows": {
+				"installMode": "passive"
+			}
 		}
 	}
 }

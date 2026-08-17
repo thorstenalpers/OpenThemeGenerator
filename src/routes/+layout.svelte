@@ -9,6 +9,7 @@
 	import { isMockHost } from '$lib/bridge/client';
 	import { library } from '$lib/stores/library.svelte';
 	import { settings } from '$lib/stores/settings.svelte';
+	import { updates } from '$lib/stores/updates.svelte';
 	import { workshop } from '$lib/stores/workshop.svelte';
 	import { applyToApp } from '$lib/theme/apply';
 
@@ -62,6 +63,10 @@
 		// Every route's code, fetched in the background right after start. A first click then costs
 		// a component swap rather than a network round trip and a module evaluation.
 		for (const route of ROUTES) void preloadCode(resolve(route));
+
+		// Once, at start. An app someone opens to pick a colour has no business asking a release
+		// server about itself twice an hour, and the answer does not change while they work.
+		void updates.check();
 	});
 </script>
 

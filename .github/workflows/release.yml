@@ -49,7 +49,13 @@ jobs:
           if (git tag -l "v$version") { Write-Error "v$version is already tagged"; exit 1 }
           "version=$version" >> $env:GITHUB_OUTPUT
 
+      # With a pubkey in the config and no private key, `tauri build` writes the installer and then
+      # exits non-zero — so a release missing the secret fails here rather than shipping something
+      # the updater in every installed copy will refuse.
       - name: Build the installer
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npx tauri build
 
       - name: Collect it
@@ -60,7 +66,34 @@ jobs:
           $setup = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
           if (-not $setup) { Write-Error 'tauri build produced no NSIS installer'; exit 1 }
           Copy-Item $setup.FullName artifacts/
+          Copy-Item "$($setup.FullName).sig" artifacts/
           Get-ChildItem artifacts | Format-Table Name, Length
+
+      # `tauri build` does not write this itself. The endpoint in tauri.conf.json expects exactly
+      # this shape, and the signature is the one produced beside the installer.
+      - name: Write latest.json
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $setup = Get-ChildItem artifacts/*-setup.exe | Select-Object -First 1
+          $signature = (Get-Content "$($setup.FullName).sig" -Raw).Trim()
+
+          $notesPath = "release-notes/v$version.md"
+          $notes = if (Test-Path $notesPath) { Get-Content $notesPath -Raw } else { "Release v$version" }
+
+          @{
+            version   = "v$version"
+            notes     = $notes
+            pub_date  = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            platforms = @{
+              'windows-x86_64' = @{
+                signature = $signature
+                url = "https://github.com/${{ github.repository }}/releases/download/v$version/$($setup.Name)"
+              }
+            }
+          } | ConvertTo-Json -Depth 5 | Set-Content artifacts/latest.json -Encoding UTF8
+
+          Get-Content artifacts/latest.json
 
       - name: Tag it
         shell: pwsh
@@ -80,4 +113,8 @@ jobs:
           body_path: release-notes/v${{ steps.version.outputs.version }}.md
           generate_release_notes: true
           fail_on_unmatched_files: true
-          files: artifacts/*-setup.exe
+          # latest.json is what the installed copies poll; the endpoint points at `releases/latest`.
+          files: |
+            artifacts/*-setup.exe
+            artifacts/*-setup.exe.sig
+            artifacts/latest.json
