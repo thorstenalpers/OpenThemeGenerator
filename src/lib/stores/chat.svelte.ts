@@ -1,6 +1,12 @@
 import { call } from '$lib/bridge/client';
 import type { ProjectContext } from '$lib/bridge/contract';
-import { buildPrompt, extractTheme, SYSTEM } from '$lib/theme/prompt';
+import {
+	buildImportPrompt,
+	buildPrompt,
+	extractTheme,
+	IMPORT_SYSTEM,
+	SYSTEM
+} from '$lib/theme/prompt';
 import type { Theme } from '$lib/theme/theme';
 import { settings } from './settings.svelte';
 import { workshop } from './workshop.svelte';
@@ -34,6 +40,44 @@ class Chat {
 
 	detach(): void {
 		this.context = null;
+	}
+
+	/**
+	 * Read a project's own look back out of it as a theme.
+	 *
+	 * The same transport and the same parser as a described theme, with a brief that asks for
+	 * extraction instead of invention — and no conversation history, because the answer must depend
+	 * on the project rather than on what was asked five turns ago. The result arrives in the studio
+	 * as a tab like any other, which is what makes the round trip work: adjust it there, export it,
+	 * and the project it came from can take it back.
+	 */
+	async importProject(root: string, label: string): Promise<void> {
+		if (this.pending) return;
+		this.error = null;
+		this.pending = true;
+		this.messages = [...this.messages, { role: 'user', text: label }];
+
+		try {
+			const context = await call('project_scan', { root });
+			this.context = context;
+
+			const reply = await call('assistant_ask', {
+				source: settings.source,
+				system: IMPORT_SYSTEM,
+				prompt: buildImportPrompt(context)
+			});
+
+			const { theme, problem } = extractTheme(reply, workshop.theme);
+			this.messages = [
+				...this.messages,
+				{ role: 'assistant', text: reply, theme: theme ?? undefined, problem }
+			];
+		} catch (caught) {
+			this.error = caught instanceof Error ? caught.message : String(caught);
+			this.messages = this.messages.slice(0, -1);
+		} finally {
+			this.pending = false;
+		}
 	}
 
 	clear(): void {

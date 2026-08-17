@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import FolderIcon from '@lucide/svelte/icons/folder-search';
+	import ImportIcon from '@lucide/svelte/icons/folder-input';
 	import SendIcon from '@lucide/svelte/icons/send-horizontal';
 	import TrashIcon from '@lucide/svelte/icons/trash-2';
 	import XIcon from '@lucide/svelte/icons/x';
@@ -24,10 +25,23 @@
 		await chat.send(text);
 	}
 
-	async function attach(): Promise<void> {
+	async function pickFolder(): Promise<string | null> {
 		const { open } = await import('@tauri-apps/plugin-dialog');
 		const root = await open({ directory: true });
-		if (typeof root === 'string') await chat.attach(root);
+		return typeof root === 'string' ? root : null;
+	}
+
+	async function attach(): Promise<void> {
+		const root = await pickFolder();
+		if (root) await chat.attach(root);
+	}
+
+	/** Reads the project's own look back out of it, rather than describing one for it. */
+	async function importProject(): Promise<void> {
+		const root = await pickFolder();
+		if (!root) return;
+		const name = root.split(/[\\/]/).filter(Boolean).at(-1) ?? root;
+		await chat.importProject(root, t.chat.importing(name));
 	}
 
 	async function apply(theme: Theme): Promise<void> {
@@ -60,6 +74,15 @@
 			<Button size="sm" variant="outline" onclick={attach} disabled={isMockHost()}>
 				<FolderIcon class="size-4" />
 				{t.chat.attach}
+			</Button>
+			<Button
+				size="sm"
+				onclick={importProject}
+				disabled={isMockHost() || chat.pending}
+				title={t.chat.importBody}
+			>
+				<ImportIcon class="size-4" />
+				{t.chat.import}
 			</Button>
 		</div>
 	</header>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { presetById } from './presets';
-import { buildPrompt, extractTheme, SYSTEM } from './prompt';
+import { buildImportPrompt, buildPrompt, extractTheme, IMPORT_SYSTEM, SYSTEM } from './prompt';
+import { SIDEBAR_STYLES } from './sidebar';
 import { inspect, type Theme } from './theme';
 
 const azure = presetById('azure') as Theme;
@@ -29,6 +30,47 @@ describe('the prompt', () => {
 		expect(prompt).toContain('Earlier request: something calmer');
 		expect(prompt).toContain('Request: warmer');
 		expect(prompt).toContain(azure.light.primary as string);
+	});
+
+	it('offers every sidebar design rather than the six it was written with', () => {
+		for (const style of SIDEBAR_STYLES) expect(SYSTEM, style).toContain(`"${style}"`);
+		expect(IMPORT_SYSTEM).toContain('"neumorph"');
+	});
+});
+
+describe('importing a project', () => {
+	const context = {
+		root: 'C:/Sources/OpenExamTrainer',
+		stack: 'SvelteKit with Tailwind v4 and shadcn-svelte.',
+		files: [
+			{ path: 'src/app.css', bytes: 20, excerpt: ':root { --brand: #123456 }', truncated: false },
+			{ path: 'components.json', bytes: 9, excerpt: '{"style":"new-york"}', truncated: true }
+		]
+	};
+
+	it('asks for what is there instead of for a design', () => {
+		expect(IMPORT_SYSTEM).toContain('importing, not designing');
+		expect(IMPORT_SYSTEM).toContain('Derive only what is genuinely absent');
+		// The one failure mode worth naming in the brief: a project with nothing to read.
+		expect(IMPORT_SYSTEM).toContain('say that plainly instead of inventing one');
+	});
+
+	it('sends the whole scan and none of the editor', () => {
+		const prompt = buildImportPrompt(context);
+
+		expect(prompt).toContain('SvelteKit with Tailwind v4');
+		expect(prompt).toContain('--- src/app.css');
+		expect(prompt).toContain('--brand: #123456');
+		expect(prompt).toContain('--- components.json (truncated)');
+		// The theme in the editor has no business steering an import.
+		expect(prompt).not.toContain(azure.light.primary as string);
+		expect(prompt).not.toContain('currently in the editor');
+	});
+
+	it('still demands the full token set, so a partial answer can be completed', () => {
+		for (const token of ['sidebar-primary-foreground', 'chart-5', 'popover-foreground']) {
+			expect(IMPORT_SYSTEM, token).toContain(token);
+		}
 	});
 });
 

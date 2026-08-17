@@ -138,6 +138,10 @@ export const de: Translations = {
 		attach: 'Projekt anhängen…',
 		attachBody:
 			'Liest die Theme-relevanten Dateien, damit die Antwort zum Projekt passt statt zu einer Vermutung darüber.',
+		import: 'Projekt importieren…',
+		importBody:
+			'Liest das Aussehen, das ein Projekt schon hat, und drückt es als Theme aus. Hier anpassen, exportieren — und das Projekt kann es zurücknehmen.',
+		importing: (name: string) => `Importiere das Theme, das ${name} bereits verwendet.`,
 		attached: (count: number) => `${count} ${count === 1 ? 'Datei' : 'Dateien'} angehängt`,
 		detach: 'Lösen',
 		clear: 'Verlauf leeren',

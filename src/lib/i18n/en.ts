@@ -133,6 +133,10 @@ export const en = {
 		attach: 'Attach a project…',
 		attachBody:
 			'Reads the theme-relevant files so the answer fits the project rather than a guess about it.',
+		import: 'Import a project…',
+		importBody:
+			'Reads the look a project already has and expresses it as a theme. Adjust it here, export it, and the project can take it back.',
+		importing: (name: string) => `Import the theme ${name} already uses.`,
 		attached: (count: number) => `${count} ${count === 1 ? 'file' : 'files'} attached`,
 		detach: 'Detach',
 		clear: 'Clear the conversation',

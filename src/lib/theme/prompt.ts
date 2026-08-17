@@ -1,6 +1,12 @@
 import type { ProjectContext } from '$lib/bridge/contract';
+import { SIDEBAR_SPECS, SIDEBAR_STYLES } from './sidebar';
 import { complete, themeSchema, type Theme } from './theme';
 import { TOKENS } from './tokens';
+
+/** Written from the specs rather than by hand, so a new design cannot go missing from the brief. */
+const SIDEBAR_CHOICES = SIDEBAR_STYLES.map((style) => `"${style}" (${SIDEBAR_SPECS[style].label})`)
+	.join(', ')
+	.replace(/^/, '');
 
 export const SYSTEM = `You design colour themes for shadcn-style design systems.
 
@@ -24,10 +30,8 @@ default, so send only the ones the request actually calls for:
   elevation     "none" | "subtle" | "soft" | "lifted"
   sidebarWidth  expanded sidebar in rem, 8 to 28
   sidebarRail   collapsed sidebar in rem, 2 to 8
-  sidebarStyle  "shadcn" | "piano" | "x" | "vercel" | "win11" | "macos" — the sidebar's whole
-                design. piano is full-width keys with hairline separators; x is big icons in round
-                pills; vercel is small dense rows under section labels; win11 is a translucent
-                mica pane with an accent edge; macos is a small translucent list with sections
+  sidebarStyle  the sidebar's whole design, one of:
+                ${SIDEBAR_CHOICES}
   iconColor     "mono" (icons inherit the text colour) | "system" (semantic defaults: blue for
                 info, green for success, amber for warnings)
   contentWidth  where a centred page stops growing, in rem, 40 to 120
@@ -46,6 +50,65 @@ Rules:
   is \`sidebarStyle\`. The sidebar is always on the left and always collapsible; do not propose
   moving it or removing it.
 - Say what you changed and why in the paragraph. Do not explain the JSON.`;
+
+/**
+ * Reading a project's theme back out of it, rather than writing one for it.
+ *
+ * The difference from `SYSTEM` is the whole point: this asks for what is already there. A project
+ * that already looks like something has that look scattered across a stylesheet, a Tailwind config
+ * and whatever the team happened to name their variables — and the job is to land it on this token
+ * set without redesigning it on the way. What cannot be read has to be derived and declared as
+ * derived, because the one thing an import must not do is quietly invent a brand colour.
+ */
+export const IMPORT_SYSTEM = `You read an existing project's visual design and express it as a
+shadcn-style theme. You are importing, not designing.
+
+Answer with one short paragraph, then one \`\`\`json fenced block and nothing after it, in exactly
+the shape described below.
+
+  id           kebab-case, from the project's own name where you can see it
+  name         the project's name, or a short human one
+  description  one sentence saying what the project's look is
+  tags         array of short strings
+  layout       object, see below
+  light        object of token -> colour
+  dark         object of token -> colour
+
+Rules that make this an import rather than a redesign:
+- Use the values the project already has. A colour you can read from its stylesheet, its Tailwind
+  config or its component classes goes in unchanged.
+- Map the project's own naming onto the token set. A variable called --brand, --surface, --panel or
+  a Tailwind \`primary\` scale is what \`primary\`, \`background\`, \`card\` and so on are for.
+- Derive only what is genuinely absent, and stay near what is there when you do: a missing
+  \`chart-3\` comes from the palette you found, not from your own taste.
+- Infer \`layout\` from what you can see — rounded-lg and a border-2 are radius and borderWidth, a
+  w-64 aside is sidebarWidth, tight paddings are a compact density.
+- If the project declares only a light palette, build the dark one from it and say so.
+- If the project has no theme worth reading, say that plainly instead of inventing one.
+- In the paragraph: which tokens came from the project, which you derived, and where you had to
+  guess. That is the only part of the answer anyone can check.
+
+Every token must be present in both palettes:
+${TOKENS.map((token) => token.name).join(', ')}
+
+\`layout\` fields are the same as for a designed theme, all optional:
+  density "compact" | "normal" | "comfortable"; radius in rem 0–2; borderWidth in px 0–4;
+  elevation "none" | "subtle" | "soft" | "lifted"; sidebarWidth rem 8–28; sidebarRail rem 2–8;
+  contentWidth rem 40–120; iconColor "mono" | "system"; sidebarStyle one of:
+  ${SIDEBAR_CHOICES}
+
+Colours are \`oklch(L C H)\` with L between 0 and 1; hex is accepted.`;
+
+/** Everything the scan found, and nothing about the theme currently in the editor. */
+export function buildImportPrompt(context: ProjectContext): string {
+	return [
+		`Import the theme this project already uses. ${context.stack}`,
+		context.files
+			.map((file) => `--- ${file.path}${file.truncated ? ' (truncated)' : ''}\n${file.excerpt}`)
+			.join('\n\n'),
+		'Read its colours and structure and express them as the token set above.'
+	].join('\n\n');
+}
 
 export interface PromptInput {
 	request: string;
