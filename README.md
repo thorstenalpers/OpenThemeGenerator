@@ -184,6 +184,11 @@ npm run start
 The workflow runs the table above — lint, types, tests and build on Linux, and `cargo fmt`,
 `clippy` and the host's tests on Windows, where the app actually ships.
 
+Releases are manual. Bump `version` in `src-tauri/tauri.conf.json` in a pull request, then run the
+**Release** workflow: it runs the same gate, builds the NSIS installer, tags `v<version>` and
+publishes it. Notes come from `release-notes/v<version>.md` if you wrote one, and from GitHub's
+summary of the commits if you did not.
+
 Two things the tests care about more than style:
 
 - **Every theme this app derives clears 4.5:1** on every surface/label pair, in both modes. So does
