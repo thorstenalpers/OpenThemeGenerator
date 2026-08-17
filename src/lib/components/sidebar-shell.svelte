@@ -63,6 +63,9 @@
 			expanded: true,
 			children: workshop.tabs.map((tab) => ({
 				label: tab.name,
+				// Two themes may carry one name — a saved copy keeps the name it was copied from — and
+				// a keyed list with a duplicate key is a crash rather than a near miss.
+				key: tab.id,
 				href: resolve('/studio'),
 				active: inStudio && workshop.id === tab.id,
 				onselect: () => workshop.activate(tab.id),

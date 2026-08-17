@@ -3,6 +3,7 @@
 	import FileCodeIcon from '@lucide/svelte/icons/file-code';
 	import InfoIcon from '@lucide/svelte/icons/info';
 	import RotateIcon from '@lucide/svelte/icons/rotate-ccw';
+	import SaveIcon from '@lucide/svelte/icons/bookmark-plus';
 	import ChevronIcon from '@lucide/svelte/icons/chevron-down';
 	import XIcon from '@lucide/svelte/icons/x';
 	import ColorSpace from '$lib/components/color-space.svelte';
@@ -15,6 +16,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Select } from '$lib/components/ui/select';
 	import { i18n } from '$lib/i18n/index.svelte';
+	import { library } from '$lib/stores/library.svelte';
 	import { viewState } from '$lib/stores/view-state.svelte';
 	import { workshop } from '$lib/stores/workshop.svelte';
 	import { hexToOklch, formatOklch, oklchToHex, parseOklch } from '$lib/theme/color';
@@ -123,6 +125,19 @@
 		ICON_COLOR_MODES.map((option) => ({ value: option, label: t.studio.iconColors[option] }))
 	);
 
+	let saved = $state(false);
+	let savedTimer: ReturnType<typeof setTimeout> | undefined;
+
+	/** Into the gallery under the tab's own name, replacing the entry already there. */
+	function saveToGallery(): void {
+		// An edited built-in becomes its own entry rather than a second card claiming the same id.
+		workshop.adoptId(library.freeId(workshop.id));
+		library.save(workshop.toDraft(), new Date().toISOString().slice(0, 10));
+		saved = true;
+		clearTimeout(savedTimer);
+		savedTimer = setTimeout(() => (saved = false), 1600);
+	}
+
 	function randomise(): void {
 		const hue = Math.floor(Math.random() * 360);
 		workshop.setRecipe({
@@ -225,6 +240,10 @@
 			<Button size="sm" variant="outline" onclick={() => workshop.reset()}>
 				<RotateIcon class="size-4" />
 				{t.studio.reset}
+			</Button>
+			<Button size="sm" variant="outline" onclick={saveToGallery}>
+				<SaveIcon class="size-4" />
+				{saved ? t.studio.saved : library.has(workshop.id) ? t.studio.update : t.studio.save}
 			</Button>
 			<Button
 				size="icon"

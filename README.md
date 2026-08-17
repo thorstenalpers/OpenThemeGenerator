@@ -64,6 +64,10 @@ drop in rather than a snippet you reconcile.
   the heading keeps saying what it is based on, and an info button shows the final differences
   against what the tab was opened holding — recipe, layout and hand-set tokens — as JSON. **Reset**
   undoes all three at once, back to that same state.
+- **Your own themes in the gallery** — save the open theme and it lands beside the built-ins, first
+  in the list, filterable on its own and deletable. What is stored is the recipe, the structure and
+  the tokens you overruled, not a flat palette, so reopening one leaves the sliders meaning
+  something. Saving an edited built-in becomes its own entry rather than shadowing the original.
 - **Six export formats** — see below.
 - **An assistant** — describe the theme in prose, optionally attach a project folder, and the reply
   is parsed into a validated theme and opened in the studio. Or go the other way and **import a

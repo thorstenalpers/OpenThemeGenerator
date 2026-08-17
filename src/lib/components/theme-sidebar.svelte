@@ -4,6 +4,8 @@
 
 	export interface SidebarChild {
 		label: string;
+		/** What tells two children apart, where the label cannot: two open themes may share a name. */
+		key?: string;
 		active?: boolean;
 		href?: string;
 		onselect?: () => void;
@@ -111,7 +113,7 @@
 		     inherit the active fill and the relief, and a pressed key would appear to contain its
 		     own children. -->
 		<div class="children">
-			{#each entry.children as child (child.label)}
+			{#each entry.children as child (child.key ?? child.label)}
 				<svelte:element
 					this={tagOf(child)}
 					{...attrsOf(child)}

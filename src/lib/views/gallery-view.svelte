@@ -8,12 +8,14 @@
 	import FileCodeIcon from '@lucide/svelte/icons/file-code';
 	import ListIcon from '@lucide/svelte/icons/list';
 	import RectangleIcon from '@lucide/svelte/icons/rectangle-horizontal';
+	import TrashIcon from '@lucide/svelte/icons/trash-2';
 	import ExportDialog from '$lib/components/export-dialog.svelte';
 	import ThemePreview from '$lib/components/theme-preview.svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { i18n } from '$lib/i18n/index.svelte';
+	import { library } from '$lib/stores/library.svelte';
 	import { viewState } from '$lib/stores/view-state.svelte';
 	import { workshop } from '$lib/stores/workshop.svelte';
 	import { ADDED_AT, GENERATED_PRESETS, PRESETS, TEMPLATE_PRESETS } from '$lib/theme/presets';
@@ -24,42 +26,60 @@
 
 	let exporting = $state<Theme | null>(null);
 
+	let removing = $state<string | null>(null);
+
 	const madeHere = new Set(GENERATED_PRESETS.map((preset) => preset.id));
 	const templates = new Set(TEMPLATE_PRESETS.map((preset) => preset.id));
 
-	/** Precomputed once: the score walks every token pair, and re-running it per sort is wasteful. */
-	const scores = new Map(PRESETS.map((preset) => [preset.id, readabilityScore(preset)]));
-	const order = new Map(PRESETS.map((preset, index) => [preset.id, index]));
+	/** Yours first: a shelf you put something on is the one you go back to. */
+	const all = $derived([...library.themes, ...PRESETS]);
+	const mine = $derived(new Set(library.drafts.map((draft) => draft.id)));
 
-	/** Ninety-odd themes is two hundred scaled previews; the list grows on request. */
+	/** The score walks every token pair, so it is worked out once per theme rather than per sort. */
+	const scores = $derived(new Map(all.map((theme) => [theme.id, readabilityScore(theme)])));
+	const order = $derived(new Map(all.map((theme, index) => [theme.id, index])));
+	const addedAt = $derived(
+		new Map([
+			...ADDED_AT,
+			...library.drafts.map((draft) => [draft.id, draft.savedAt] as [string, string])
+		])
+	);
+
+	/** A hundred-odd themes is two hundred scaled previews; the list grows on request. */
 	const PAGE = 12;
 
-	const tags = [...new Set(PRESETS.flatMap((preset) => preset.tags))].sort();
+	const tags = $derived([...new Set(all.flatMap((theme) => theme.tags))].sort());
 
 	const sourceOf = (theme: Theme) =>
-		madeHere.has(theme.id)
-			? t.gallery.generated
-			: templates.has(theme.id)
-				? t.gallery.templates
-				: t.gallery.registry;
+		mine.has(theme.id)
+			? t.gallery.mine
+			: madeHere.has(theme.id)
+				? t.gallery.generated
+				: templates.has(theme.id)
+					? t.gallery.templates
+					: t.gallery.registry;
 
 	function compare(a: Theme, b: Theme, key: string): number {
 		switch (key) {
 			case 'name':
 				return a.name.localeCompare(b.name);
 			case 'added':
-				return (ADDED_AT.get(b.id) ?? '').localeCompare(ADDED_AT.get(a.id) ?? '');
+				return (addedAt.get(b.id) ?? '').localeCompare(addedAt.get(a.id) ?? '');
 			default:
 				return (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0);
 		}
 	}
 
 	const filtered = $derived(
-		PRESETS.filter((preset) => {
+		all.filter((preset) => {
 			const source = viewState.gallery.source;
+			if (source === 'mine' && !mine.has(preset.id)) return false;
 			if (source === 'generated' && !madeHere.has(preset.id)) return false;
 			if (source === 'templates' && !templates.has(preset.id)) return false;
-			if (source === 'registry' && (madeHere.has(preset.id) || templates.has(preset.id)))
+			if (
+				source === 'registry' &&
+				(mine.has(preset.id) || madeHere.has(preset.id) || templates.has(preset.id))
+			)
 				return false;
 
 			const tag = viewState.gallery.tag;
@@ -101,6 +121,7 @@
 
 	const sources = $derived([
 		{ id: 'all' as const, label: t.gallery.all },
+		{ id: 'mine' as const, label: t.gallery.mine },
 		{ id: 'generated' as const, label: t.gallery.generated },
 		{ id: 'templates' as const, label: t.gallery.templates },
 		{ id: 'registry' as const, label: t.gallery.registry }
@@ -215,6 +236,28 @@
 
 {#snippet actions(preset: Theme)}
 	<div class="flex items-center gap-1.5">
+		<!-- Only your own can be deleted, and only after saying so twice: the built-ins come back on
+		     the next start, a theme you saved does not. -->
+		{#if mine.has(preset.id)}
+			{#if removing === preset.id}
+				<Button size="sm" variant="destructive" onclick={() => library.remove(preset.id)}>
+					{t.gallery.deleteConfirm}
+				</Button>
+				<Button size="sm" variant="ghost" onclick={() => (removing = null)}
+					>{t.common.cancel}</Button
+				>
+			{:else}
+				<Button
+					size="sm"
+					variant="ghost"
+					onclick={() => (removing = preset.id)}
+					aria-label={t.gallery.delete}
+					title={t.gallery.delete}
+				>
+					<TrashIcon class="size-4" />
+				</Button>
+			{/if}
+		{/if}
 		<Button size="sm" variant="ghost" onclick={() => (exporting = preset)}>
 			<FileCodeIcon class="size-4" />
 			{t.studio.exportTheme}
@@ -294,7 +337,7 @@
 			class="ms-auto w-44"
 		/>
 		<span class="text-xs text-muted-foreground">
-			{t.gallery.counted(shown.length, PRESETS.length)}
+			{t.gallery.counted(shown.length, all.length)}
 		</span>
 	</div>
 
@@ -378,8 +421,7 @@
 									{scores.get(preset.id)}
 								{/if}
 							</td>
-							<td class="px-3 py-2 text-muted-foreground tabular-nums">{ADDED_AT.get(preset.id)}</td
-							>
+							<td class="px-3 py-2 text-muted-foreground tabular-nums">{addedAt.get(preset.id)}</td>
 							<td class="px-3 py-2 text-end text-muted-foreground">{sourceOf(preset)}</td>
 							<td class="px-3 py-2 text-end">{@render actions(preset)}</td>
 						</tr>

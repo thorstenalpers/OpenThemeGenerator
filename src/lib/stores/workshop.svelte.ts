@@ -5,6 +5,7 @@ import { TEMPLATE_DRAFTS } from '$lib/theme/templates';
 import type { ThemeDraft } from '$lib/theme/generate';
 import type { Theme } from '$lib/theme/theme';
 import type { Palette } from '$lib/theme/tokens';
+import { library } from './library.svelte';
 
 const STORAGE_KEY = 'otg.workshop';
 
@@ -231,12 +232,43 @@ class Workshop {
 	loadPreset(id: string): void {
 		// A draft first, because it carries the recipe: opening a generated theme should leave the
 		// sliders meaning something, where an imported one can only ever arrive as a flat palette.
-		const draft = [...PRESET_DRAFTS, ...TEMPLATE_DRAFTS].find((candidate) => candidate.id === id);
+		// A saved theme is a draft too, which is the whole reason the library stores drafts.
+		const draft =
+			library.find(id) ??
+			[...PRESET_DRAFTS, ...TEMPLATE_DRAFTS].find((candidate) => candidate.id === id);
 		if (draft) this.open(draft);
 		else {
 			const preset = presetById(id);
 			if (preset) this.loadTheme(preset);
 		}
+	}
+
+	/**
+	 * Takes an id the library has cleared as free, without touching the name.
+	 *
+	 * Saving an edited built-in has to become its own entry, and its id is what tells it apart from
+	 * the one it came from — in the gallery's keyed list and in the name of every file it exports.
+	 */
+	adoptId(id: string): void {
+		const tab = this.active;
+		if (!tab || tab.id === id) return;
+		tab.id = id;
+		this.activeId = id;
+		this.persist();
+	}
+
+	/** The open tab as a draft: what the library stores and what reopening it restores. */
+	toDraft(): ThemeDraft {
+		const tab = this.active;
+		return {
+			id: tab.id,
+			name: tab.name,
+			description: tab.description,
+			tags: [...tab.tags],
+			recipe: { ...tab.recipe },
+			layout: { ...tab.layout },
+			overrides: { light: { ...tab.overrides.light }, dark: { ...tab.overrides.dark } }
+		};
 	}
 
 	restore(): void {

@@ -30,7 +30,7 @@ class ViewState {
 	/** How the gallery is filtered. Forty-odd themes need one, and scrolling back to re-apply it
 	 *  after every visit to the studio would make the filter worse than useless. */
 	gallery = $state<{
-		source: 'all' | 'generated' | 'templates' | 'registry';
+		source: 'all' | 'mine' | 'generated' | 'templates' | 'registry';
 		tag: string | null;
 		search: string;
 		page: number;

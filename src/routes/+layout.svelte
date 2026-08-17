@@ -7,6 +7,7 @@
 	import ModeToggle from '$lib/components/mode-toggle.svelte';
 	import SidebarShell, { ROUTES } from '$lib/components/sidebar-shell.svelte';
 	import { isMockHost } from '$lib/bridge/client';
+	import { library } from '$lib/stores/library.svelte';
 	import { settings } from '$lib/stores/settings.svelte';
 	import { workshop } from '$lib/stores/workshop.svelte';
 	import { applyToApp } from '$lib/theme/apply';
@@ -14,6 +15,8 @@
 	let { children }: { children?: Snippet } = $props();
 
 	settings.restore();
+	// Before the workshop, which looks in the library when it reopens the tab you left behind.
+	library.restore();
 	workshop.restore();
 
 	// Dressing the app in the theme being edited is the whole point of the switch, so it has to
