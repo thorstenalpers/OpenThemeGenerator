@@ -145,14 +145,16 @@ export function readabilityScore(theme: Theme): number {
 	return Math.round(scaled * 100);
 }
 
-export function lowContrastPairs(theme: Theme): { mode: 'light' | 'dark'; pair: string }[] {
-	const found: { mode: 'light' | 'dark'; pair: string }[] = [];
+/** Every surface/label pair that a reader would struggle with, and by how much it misses. */
+export function lowContrastPairs(
+	theme: Theme
+): { mode: 'light' | 'dark'; pair: string; ratio: number }[] {
+	const found: { mode: 'light' | 'dark'; pair: string; ratio: number }[] = [];
 	for (const mode of ['light', 'dark'] as const) {
 		const palette = paletteOf(theme, mode);
 		for (const { surface, label } of TOKEN_PAIRS) {
-			if (contrast(palette[surface] ?? '', palette[label] ?? '') < 4.5) {
-				found.push({ mode, pair: `${surface}/${label}` });
-			}
+			const ratio = contrast(palette[surface] ?? '', palette[label] ?? '');
+			if (ratio < 4.5) found.push({ mode, pair: `${surface}/${label}`, ratio });
 		}
 	}
 	return found;

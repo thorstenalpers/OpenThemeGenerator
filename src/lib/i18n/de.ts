@@ -40,6 +40,7 @@ export const de: Translations = {
 		empty: 'Nichts passt zu diesem Filter.',
 		counted: (shown: number, total: number) => `${shown} von ${total}`,
 		belowAA: (count: number) => `${count} unter 4,5:1`,
+		belowAAWhich: 'Paare, die beim Lesen Mühe machen:',
 		more: (count: number) => `Weitere ${count} zeigen`,
 		sortedBy: 'Sortiert nach',
 		layoutGrid: 'Zwei pro Zeile',

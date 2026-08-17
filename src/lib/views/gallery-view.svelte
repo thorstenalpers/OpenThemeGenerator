@@ -260,7 +260,16 @@
 		<h2 class="text-sm font-semibold">{preset.name}</h2>
 		<Badge>{SIDEBAR_SPECS[preset.layout.sidebarStyle].label}</Badge>
 		{#if failing.length > 0}
-			<Badge variant="destructive">{t.gallery.belowAA(failing.length)}</Badge>
+			<!-- Which pairs, not just how many: "3 under 4.5:1" says a theme has a problem and not
+			     where, and for an imported one the answer is usually the project it came from. -->
+			<Badge
+				variant="destructive"
+				title="{t.gallery.belowAAWhich}\n{failing
+					.map((entry) => `${entry.mode} · ${entry.pair} — ${entry.ratio.toFixed(2)}:1`)
+					.join('\n')}"
+			>
+				{t.gallery.belowAA(failing.length)}
+			</Badge>
 		{/if}
 		{#if workshop.id === preset.id}
 			<Badge variant="accent">

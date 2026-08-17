@@ -23,12 +23,14 @@
   interface Props {
     variant?: BadgeVariant;
     class?: string;
+    /** Hover text, where the badge is a count and the detail behind it is worth having. */
+    title?: string;
     children: Snippet;
   }
 
-  let { variant = 'neutral', class: className, children }: Props = $props();
+  let { variant = 'neutral', class: className, title, children }: Props = $props();
 </script>
 
-<span class={cn(badgeVariants({ variant }), className)}>
+<span class={cn(badgeVariants({ variant }), className)} {title}>
   {@render children()}
 </span>

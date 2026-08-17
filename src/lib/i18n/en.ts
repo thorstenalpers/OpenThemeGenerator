@@ -38,6 +38,7 @@ export const en = {
 		empty: 'Nothing matches that filter.',
 		counted: (shown: number, total: number) => `${shown} of ${total}`,
 		belowAA: (count: number) => `${count} under 4.5:1`,
+		belowAAWhich: 'Pairs a reader would struggle with:',
 		more: (count: number) => `Show ${count} more`,
 		sortedBy: 'Sorted by',
 		layoutGrid: 'Two a row',
