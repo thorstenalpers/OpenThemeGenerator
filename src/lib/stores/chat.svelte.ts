@@ -51,8 +51,8 @@ class Chat {
 	 * as a tab like any other, which is what makes the round trip work: adjust it there, export it,
 	 * and the project it came from can take it back.
 	 */
-	async importProject(root: string, label: string): Promise<void> {
-		if (this.pending) return;
+	async importProject(root: string, label: string): Promise<Theme | null> {
+		if (this.pending) return null;
 		this.error = null;
 		this.pending = true;
 		this.messages = [...this.messages, { role: 'user', text: label }];
@@ -72,9 +72,14 @@ class Chat {
 				...this.messages,
 				{ role: 'assistant', text: reply, theme: theme ?? undefined, problem }
 			];
+			// The conversation keeps the reasoning either way; the caller gets the theme so an import
+			// started from the gallery can land there without a detour through the chat.
+			if (!theme && problem) this.error = problem;
+			return theme;
 		} catch (caught) {
 			this.error = caught instanceof Error ? caught.message : String(caught);
 			this.messages = this.messages.slice(0, -1);
+			return null;
 		} finally {
 			this.pending = false;
 		}

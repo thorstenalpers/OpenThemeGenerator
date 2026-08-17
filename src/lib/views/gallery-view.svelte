@@ -9,12 +9,15 @@
 	import ListIcon from '@lucide/svelte/icons/list';
 	import RectangleIcon from '@lucide/svelte/icons/rectangle-horizontal';
 	import TrashIcon from '@lucide/svelte/icons/trash-2';
+	import ImportIcon from '@lucide/svelte/icons/folder-input';
 	import ExportDialog from '$lib/components/export-dialog.svelte';
 	import ThemePreview from '$lib/components/theme-preview.svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
+	import { isMockHost } from '$lib/bridge/client';
 	import { i18n } from '$lib/i18n/index.svelte';
+	import { chat } from '$lib/stores/chat.svelte';
 	import { library } from '$lib/stores/library.svelte';
 	import { viewState } from '$lib/stores/view-state.svelte';
 	import { workshop } from '$lib/stores/workshop.svelte';
@@ -188,6 +191,41 @@
 		workshop.loadPreset(id);
 		await goto(resolve('/studio'));
 	}
+
+	/**
+	 * Point at any project and it arrives here as a theme.
+	 *
+	 * The assistant reads what the project already looks like and the answer is saved straight into
+	 * the gallery under the folder's name, because that is where someone looking for a theme is
+	 * standing. The conversation keeps the model's account of what it read and what it had to
+	 * derive, for anyone who wants to check it.
+	 */
+	async function importProject(): Promise<void> {
+		const { open: pick } = await import('@tauri-apps/plugin-dialog');
+		const root = await pick({ directory: true });
+		if (typeof root !== 'string') return;
+
+		const folder = root.split(/[\\/]/).filter(Boolean).at(-1) ?? root;
+		const theme = await chat.importProject(root, t.chat.importing(folder));
+		if (!theme) return;
+
+		const id = library.freeId(theme.id);
+		library.save(
+			{
+				id,
+				name: theme.name,
+				description: theme.description,
+				tags: [...theme.tags, 'imported'],
+				recipe: { seed: theme.light.primary ?? '#18181b' },
+				layout: { ...theme.layout },
+				overrides: { light: { ...theme.light }, dark: { ...theme.dark } }
+			},
+			new Date().toISOString().slice(0, 10)
+		);
+
+		viewState.gallery.source = 'mine';
+		viewState.gallery.search = '';
+	}
 </script>
 
 {#snippet sortable(key: 'name' | 'added')}
@@ -329,12 +367,23 @@
 			{/each}
 		</div>
 
+		<Button
+			size="sm"
+			class="ms-auto"
+			onclick={importProject}
+			disabled={isMockHost() || chat.pending}
+			title={t.chat.importBody}
+		>
+			<ImportIcon class="size-4" />
+			{chat.pending ? t.chat.thinking : t.chat.import}
+		</Button>
+
 		<Input
 			value={viewState.gallery.search}
 			oninput={(event: Event) =>
 				(viewState.gallery.search = (event.currentTarget as HTMLInputElement).value)}
 			placeholder={t.gallery.search}
-			class="ms-auto w-44"
+			class="w-44"
 		/>
 		<span class="text-xs text-muted-foreground">
 			{t.gallery.counted(shown.length, all.length)}
@@ -373,6 +422,13 @@
 
 	{#if shown.length === 0}
 		<p class="py-8 text-center text-sm text-muted-foreground">{t.gallery.empty}</p>
+	{/if}
+
+	{#if chat.error}
+		<!-- An import that failed says why here rather than only in a conversation nobody opened. -->
+		<p class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm">
+			{chat.error}
+		</p>
 	{/if}
 
 	{#if viewState.gallery.layout === 'list'}

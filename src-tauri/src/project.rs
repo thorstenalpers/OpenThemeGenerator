@@ -41,30 +41,68 @@ const WANTED: &[&str] = &[
 const WANTED_PREFIXES: &[&str] = &["tailwind.config.", "uno.config."];
 
 const MAX_DEPTH: usize = 4;
-const MAX_FILES: usize = 12;
+const MAX_FILES: usize = 14;
 const MAX_EXCERPT: usize = 6_000;
 const MAX_TOTAL: usize = 48_000;
 
-fn is_wanted(name: &str) -> bool {
+/// How much of a component is read while deciding whether its styles are worth carrying.
+const SNIFF: usize = 20_000;
+
+fn is_stylesheet(name: &str) -> bool {
+    let lower = name.to_ascii_lowercase();
+    lower.ends_with(".css") || lower.ends_with(".scss")
+}
+
+/// A component that paints something, in a project that keeps no stylesheet at all.
+///
+/// Most Svelte projects are not shadcn projects. They have no `app.css` full of custom properties —
+/// their colours live in `<style>` blocks next to the markup, and a scan that only knows a dozen
+/// filenames comes back with a `package.json` and nothing to read. Reading the file to decide is
+/// the point: a component with no style block, or one that sets no colour, is not worth a slot.
+fn paints(path: &Path) -> bool {
+    let Ok(raw) = std::fs::read_to_string(path) else {
+        return false;
+    };
+    let head = &raw[..cut(&raw, SNIFF)];
+    let Some(start) = head.find("<style") else {
+        return false;
+    };
+    let styles = &head[start..];
+
+    ["#", "rgb", "hsl", "oklch", "var(--", "color:", "background"]
+        .iter()
+        .any(|marker| styles.contains(marker))
+}
+
+fn is_wanted(path: &Path, name: &str) -> bool {
     let lower = name.to_ascii_lowercase();
     WANTED.contains(&lower.as_str())
         || WANTED_PREFIXES
             .iter()
             .any(|prefix| lower.starts_with(prefix))
+        || is_stylesheet(&lower)
+        || (lower.ends_with(".svelte") && paints(path))
 }
 
-/// Stylesheets first, then the manifests: if the cap cuts the list short, the tokens survive and
-/// the dependency list is the thing that goes.
+/// Named stylesheets first, then any other, then the manifests, then components.
+///
+/// The order is what the byte budget cuts against: an `app.css` that declares the tokens is worth
+/// more than a dependency list, and a dependency list is worth more than the fourth component that
+/// happens to set a border colour.
 fn rank(name: &str) -> u8 {
     let lower = name.to_ascii_lowercase();
-    if lower.ends_with(".css") {
+    if WANTED.contains(&lower.as_str()) && is_stylesheet(&lower) {
         0
-    } else if lower == "components.json" {
+    } else if is_stylesheet(&lower) {
         1
-    } else if lower.starts_with("tailwind.config.") || lower.starts_with("uno.config.") {
+    } else if lower == "components.json" {
         2
-    } else {
+    } else if lower.starts_with("tailwind.config.") || lower.starts_with("uno.config.") {
         3
+    } else if lower == "package.json" {
+        4
+    } else {
+        5
     }
 }
 
@@ -89,7 +127,7 @@ fn collect(root: &Path, current: &Path, depth: usize, found: &mut Vec<PathBuf>) 
             if !name.starts_with('.') && !SKIP.contains(&name) {
                 collect(root, &path, depth + 1, found);
             }
-        } else if is_wanted(name) {
+        } else if is_wanted(&path, name) {
             found.push(path);
         }
     }
@@ -130,6 +168,16 @@ fn describe(files: &[ProjectFile]) -> String {
         notes.push("existing tokens are written in OKLCH");
     } else if joined.contains("hsl(var(--") {
         notes.push("existing tokens are HSL channels behind hsl(var(--token))");
+    }
+
+    // Only when there is genuinely nothing else: components turn up beside a stylesheet often
+    // enough, and saying the colours live in them when an app.css is right there is a lie the
+    // assistant would then design around.
+    let has_stylesheet = files
+        .iter()
+        .any(|file| is_stylesheet(&file.path.to_ascii_lowercase()));
+    if !has_stylesheet && files.iter().any(|file| file.path.ends_with(".svelte")) {
+        notes.push("no shared stylesheet — the colours are in the components' own style blocks");
     }
 
     if notes.is_empty() {

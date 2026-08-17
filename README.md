@@ -126,7 +126,13 @@ the answer fits the project rather than a guess about it.
 are there, map the project's own naming onto the token set, derive only what is genuinely absent and
 say which ones those were — and if a project has no theme worth reading, say so rather than invent a
 brand colour. No conversation history goes with it, so the answer depends on the project rather than
-on what was asked five turns ago.
+on what was asked five turns ago. It starts from the gallery as well as the assistant, and what
+comes back is saved there under the folder's name.
+
+Most Svelte projects are not shadcn projects, so the scan does not only look for a dozen known
+filenames. It takes any stylesheet, and where a project has none it reads the components that
+actually paint something — a `.svelte` file with a `<style>` block that sets a colour. One with no
+style block, or a style block that only lays things out, does not take a slot.
 
 Nothing else in the app reaches the network. The gallery, including the thirty imported shadcn
 themes, is checked into the repository and read from disk; the only outbound request in the whole
