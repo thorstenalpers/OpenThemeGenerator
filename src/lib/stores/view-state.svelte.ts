@@ -38,8 +38,13 @@ class ViewState {
 		layout: 'grid' | 'single' | 'list';
 		/** Which modes each card previews. Dropping one gives the other the whole card. */
 		modes: { light: boolean; dark: boolean };
-		/** Ordered by, in the list view stacked: the first click is primary, the next secondary. */
-		sort: { key: 'curated' | 'name' | 'readability' | 'added' | 'sidebar'; desc: boolean }[];
+		/**
+		 * Ordered by, in the list view stacked: the first click is primary, the next secondary.
+		 *
+		 * `curated` is the hand-written order the gallery ships in and has no button — it is what
+		 * "not sorted by anything" means, and the tie-breaker under everything else.
+		 */
+		sort: { key: 'curated' | 'name' | 'added'; desc: boolean }[];
 	}>({
 		source: 'all',
 		tag: null,

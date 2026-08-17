@@ -222,9 +222,9 @@
 			{#if workshop.editedCount > 0}
 				<Badge variant="accent">{t.studio.edited} · {workshop.editedCount}</Badge>
 			{/if}
-			<Button size="sm" variant="outline" onclick={() => workshop.regenerate()}>
+			<Button size="sm" variant="outline" onclick={() => workshop.reset()}>
 				<RotateIcon class="size-4" />
-				{t.studio.regenerate}
+				{t.studio.reset}
 			</Button>
 			<Button
 				size="icon"

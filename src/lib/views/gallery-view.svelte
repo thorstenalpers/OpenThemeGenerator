@@ -47,14 +47,8 @@
 		switch (key) {
 			case 'name':
 				return a.name.localeCompare(b.name);
-			case 'readability':
-				return (scores.get(b.id) ?? 0) - (scores.get(a.id) ?? 0);
 			case 'added':
 				return (ADDED_AT.get(b.id) ?? '').localeCompare(ADDED_AT.get(a.id) ?? '');
-			case 'sidebar':
-				return SIDEBAR_SPECS[a.layout.sidebarStyle].label.localeCompare(
-					SIDEBAR_SPECS[b.layout.sidebarStyle].label
-				);
 			default:
 				return (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0);
 		}
@@ -140,10 +134,10 @@
 		};
 	}
 
+	/** The two orders that mean something to someone looking for a theme. Sidebar and readability
+	 *  were columns you could sort by and never a reason to. */
 	const columns = $derived([
 		{ key: 'name' as const, label: t.gallery.columnName },
-		{ key: 'sidebar' as const, label: t.gallery.columnSidebar },
-		{ key: 'readability' as const, label: t.gallery.columnReadability },
 		{ key: 'added' as const, label: t.gallery.columnAdded }
 	]);
 
@@ -174,6 +168,32 @@
 		await goto(resolve('/studio'));
 	}
 </script>
+
+{#snippet sortable(key: 'name' | 'added')}
+	{@const column = columns.find((candidate) => candidate.key === key)}
+	{@const state = sortState(key)}
+	<th class="px-3 py-2 text-start font-medium">
+		<button
+			type="button"
+			onclick={(event: MouseEvent) => sortBy(key, event.shiftKey)}
+			class="inline-flex cursor-pointer items-center gap-1 hover:text-foreground {state
+				? 'text-foreground'
+				: 'text-muted-foreground'}"
+		>
+			{column?.label}
+			{#if state}
+				{#if state.desc}
+					<ArrowDownIcon class="size-3.5" />
+				{:else}
+					<ArrowUpIcon class="size-3.5" />
+				{/if}
+				{#if viewState.gallery.sort.length > 1}
+					<span class="text-[10px] tabular-nums">{state.rank}</span>
+				{/if}
+			{/if}
+		</button>
+	</th>
+{/snippet}
 
 {#snippet meta(preset: Theme)}
 	{@const failing = lowContrastPairs(preset)}
@@ -316,31 +336,17 @@
 		<div class="overflow-hidden rounded-lg border">
 			<table class="w-full text-sm">
 				<thead>
+					<!-- Sidebar and readability stay as columns and stop being sort keys: worth reading off a
+					     row, never worth ordering a hundred themes by. -->
 					<tr class="border-b bg-muted/40">
-						{#each columns as column (column.key)}
-							{@const state = sortState(column.key)}
-							<th class="px-3 py-2 text-start font-medium">
-								<button
-									type="button"
-									onclick={(event) => sortBy(column.key, event.shiftKey)}
-									class="inline-flex cursor-pointer items-center gap-1 hover:text-foreground {state
-										? 'text-foreground'
-										: 'text-muted-foreground'}"
-								>
-									{column.label}
-									{#if state}
-										{#if state.desc}
-											<ArrowDownIcon class="size-3.5" />
-										{:else}
-											<ArrowUpIcon class="size-3.5" />
-										{/if}
-										{#if viewState.gallery.sort.length > 1}
-											<span class="text-[10px] tabular-nums">{state.rank}</span>
-										{/if}
-									{/if}
-								</button>
-							</th>
-						{/each}
+						{@render sortable('name')}
+						<th class="px-3 py-2 text-start font-medium text-muted-foreground">
+							{t.gallery.columnSidebar}
+						</th>
+						<th class="px-3 py-2 text-start font-medium text-muted-foreground">
+							{t.gallery.columnReadability}
+						</th>
+						{@render sortable('added')}
 						<th class="px-3 py-2 text-end font-medium text-muted-foreground">
 							{t.gallery.columnSource}
 						</th>

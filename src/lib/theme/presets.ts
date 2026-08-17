@@ -446,7 +446,7 @@ export const PRESET_DRAFTS: readonly ThemeDraft[] = [
  *
  * The palettes become overrides, so every value is exactly as published. The recipe behind them is
  * seeded from the theme's own primary, which only matters for the handful of tokens the registry
- * does not define — `success` and `warning` — and for what happens if someone presses regenerate.
+ * does not define — `success` and `warning` — and for what happens if someone presses reset.
  * The structure is this app's own: a registry item has no opinion about sidebars.
  */
 function fromRegistry(entry: RegistryTheme): ThemeDraft {
@@ -473,7 +473,7 @@ function tagged(theme: Theme): Theme {
 	return { ...theme, tags: [...theme.tags, '3d'] };
 }
 
-/** Made here, from a recipe. Editing one and pressing regenerate gives the design back. */
+/** Made here, from a recipe. Editing one and pressing reset gives the design back. */
 export const GENERATED_PRESETS: readonly Theme[] = PRESET_DRAFTS.map(buildTheme).map(tagged);
 
 /** The colour × sidebar combinations, ready to take. Same machinery, more ground covered. */

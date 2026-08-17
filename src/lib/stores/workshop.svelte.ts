@@ -13,8 +13,21 @@ interface Tab {
 	id: string;
 	name: string;
 	description: string;
-	/** The template this tab was opened from. Renaming never touches it. */
-	origin: { id: string; name: string; recipe: Recipe; layout: Layout } | null;
+	/**
+	 * The state this tab was opened in. Renaming never touches it, and neither does anything else —
+	 * it is what reset goes back to.
+	 *
+	 * It has to carry the overrides as well as the recipe. An imported theme arrives as a flat
+	 * palette and nothing else, so a reset that only cleared the overrides would not restore it, it
+	 * would delete it and leave whatever the seed happens to derive.
+	 */
+	origin: {
+		id: string;
+		name: string;
+		recipe: Recipe;
+		layout: Layout;
+		overrides: { light: Palette; dark: Palette };
+	} | null;
 	tags: string[];
 	recipe: Recipe;
 	layout: Layout;
@@ -29,15 +42,20 @@ interface Stored {
 function tabFromDraft(draft: ThemeDraft): Tab {
 	const recipe = { ...DEFAULT_RECIPE, ...draft.recipe };
 	const layout = { ...DEFAULT_LAYOUT, ...draft.layout };
+	const overrides = {
+		light: { ...draft.overrides?.light },
+		dark: { ...draft.overrides?.dark }
+	};
+
 	return {
 		id: draft.id,
 		name: draft.name,
-		origin: { id: draft.id, name: draft.name, recipe, layout },
+		origin: { id: draft.id, name: draft.name, recipe, layout, overrides },
 		description: draft.description ?? '',
 		tags: [...(draft.tags ?? [])],
 		recipe: { ...recipe },
 		layout: { ...layout },
-		overrides: { light: { ...draft.overrides?.light }, dark: { ...draft.overrides?.dark } }
+		overrides: { light: { ...overrides.light }, dark: { ...overrides.dark } }
 	};
 }
 
@@ -45,7 +63,7 @@ function tabFromDraft(draft: ThemeDraft): Tab {
  * The open themes and which one the studio is editing.
  *
  * A theme is a recipe plus the tokens someone overruled by hand, never a flat table of values.
- * That is what lets "make the corners tighter" stay one number, and what `regenerate` falls back
+ * That is what lets "make the corners tighter" stay one number, and what `reset` falls back
  * to when an experiment goes wrong. Several can be open at once: comparing two candidates means
  * switching between them, not rebuilding the one you left.
  */
@@ -140,10 +158,25 @@ class Workshop {
 		this.persist();
 	}
 
-	/** Drops every hand-set token and lets the recipe speak again. */
-	regenerate(): void {
-		if (!this.active) return;
-		this.active.overrides = { light: {}, dark: {} };
+	/**
+	 * Back to the theme as it was opened — the seed and every other dial, the structure, and the
+	 * hand-set tokens all at once.
+	 *
+	 * Clearing the overrides alone left the recipe standing, so a seed nudged to the wrong hue
+	 * survived the one button meant to undo it. A tab with no origin behind it — a theme the
+	 * assistant wrote — has nothing to go back to but the defaults.
+	 */
+	reset(): void {
+		const tab = this.active;
+		if (!tab) return;
+
+		const origin = tab.origin;
+		tab.recipe = { ...(origin?.recipe ?? DEFAULT_RECIPE) };
+		tab.layout = { ...(origin?.layout ?? DEFAULT_LAYOUT) };
+		tab.overrides = {
+			light: { ...origin?.overrides.light },
+			dark: { ...origin?.overrides.dark }
+		};
 		this.persist();
 	}
 
@@ -181,7 +214,7 @@ class Workshop {
 	/**
 	 * A finished theme with no recipe behind it — what the assistant answers with. Every token
 	 * becomes an override, so the palette is exactly what arrived; the recipe stays as a starting
-	 * point for whoever presses regenerate.
+	 * point for whoever presses reset.
 	 */
 	loadTheme(theme: Theme): void {
 		this.open({
@@ -220,7 +253,17 @@ class Workshop {
 			this.tabs = stored.tabs.map((tab) => ({
 				...tab,
 				recipe: { ...DEFAULT_RECIPE, ...tab.recipe },
-				layout: { ...DEFAULT_LAYOUT, ...tab.layout }
+				layout: { ...DEFAULT_LAYOUT, ...tab.layout },
+				// Tabs stored before reset needed them have an origin without overrides. Reading the
+				// field back as undefined would make the first reset wipe the palette of an imported
+				// theme, so it is filled in from what the tab currently holds.
+				origin: tab.origin && {
+					...tab.origin,
+					overrides: tab.origin.overrides ?? {
+						light: { ...tab.overrides.light },
+						dark: { ...tab.overrides.dark }
+					}
+				}
 			}));
 			this.activeId = stored.activeId;
 			if (!this.active) this.activeId = (this.tabs[0] as Tab).id;

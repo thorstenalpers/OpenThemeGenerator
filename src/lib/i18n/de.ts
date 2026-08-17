@@ -52,7 +52,7 @@ export const de: Translations = {
 	},
 	studio: {
 		title: 'Studio',
-		body: 'Alles leitet sich aus der Grundfarbe ab. Ein direkt geändertes Token folgt dem Rezept nicht mehr, bis neu erzeugt wird.',
+		body: 'Alles leitet sich aus der Grundfarbe ab. Ein direkt geändertes Token folgt dem Rezept nicht mehr; Zurücksetzen stellt das ganze Theme so wieder her, wie es geöffnet wurde.',
 		colour: 'Farbe',
 		layout: 'Layout',
 		layoutBody: 'Die Form der Seite, nicht die Palette. Das wirkt auf die ganze App auf einmal.',
@@ -101,7 +101,7 @@ export const de: Translations = {
 		radius: 'Eckenradius',
 		lightBackground: 'Heller Hintergrund',
 		darkBackground: 'Dunkler Hintergrund',
-		regenerate: 'Aus dem Rezept neu erzeugen',
+		reset: 'Zurücksetzen',
 		randomise: 'Zufällige Grundfarbe',
 		tokens: 'Tokens',
 		preview: 'Vorschau',

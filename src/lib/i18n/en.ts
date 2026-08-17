@@ -51,7 +51,7 @@ export const en = {
 	},
 	studio: {
 		title: 'Studio',
-		body: 'Everything is derived from the seed colour. Edit a token directly and it stops following the recipe until you regenerate.',
+		body: 'Everything is derived from the seed colour. Edit a token directly and it stops following the recipe; reset puts the whole theme back to how it was opened.',
 		colour: 'Colour',
 		layout: 'Layout',
 		layoutBody: 'The shape of the page, not the palette. These reach the whole app at once.',
@@ -97,7 +97,7 @@ export const en = {
 		radius: 'Corner radius',
 		lightBackground: 'Light background',
 		darkBackground: 'Dark background',
-		regenerate: 'Regenerate from the recipe',
+		reset: 'Reset',
 		randomise: 'Random seed',
 		tokens: 'Tokens',
 		preview: 'Preview',
