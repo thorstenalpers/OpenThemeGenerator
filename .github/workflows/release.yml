@@ -1,0 +1,83 @@
+name: Release
+
+# Manual, because the version lives in tauri.conf.json and a release is a decision, not a
+# consequence of merging. Bump it in a pull request, then run this.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: Installer
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      # The same gate as CI. A release that skips it is the one build nobody checked.
+      - run: npm run check
+      - run: npm test
+      - run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Read the version, and refuse a tag that exists
+        id: version
+        shell: pwsh
+        run: |
+          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if (-not $version) { Write-Error 'No version in src-tauri/tauri.conf.json'; exit 1 }
+          # Checked here rather than at `git tag` half an hour later, once the installer is built.
+          if (git tag -l "v$version") { Write-Error "v$version is already tagged"; exit 1 }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Build the installer
+        run: npx tauri build
+
+      - name: Collect it
+        id: artifact
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force artifacts | Out-Null
+          $setup = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe | Select-Object -First 1
+          if (-not $setup) { Write-Error 'tauri build produced no NSIS installer'; exit 1 }
+          Copy-Item $setup.FullName artifacts/
+          Get-ChildItem artifacts | Format-Table Name, Length
+
+      - name: Tag it
+        shell: pwsh
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+
+      # Notes from release-notes/v<version>.md when it is there, and GitHub's own summary of the
+      # commits when it is not — a missing file should not lose a built installer.
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: OpenThemeGenerator ${{ steps.version.outputs.version }}
+          body_path: release-notes/v${{ steps.version.outputs.version }}.md
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: artifacts/*-setup.exe
